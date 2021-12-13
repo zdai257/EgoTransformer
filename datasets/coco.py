@@ -6,7 +6,7 @@ from PIL import Image
 import numpy as np
 import random
 import os
-
+from os.path import join
 from transformers import BertTokenizer
 
 from .utils import nested_tensor_from_tensor_list, read_json
@@ -54,6 +54,47 @@ val_transform = tv.transforms.Compose([
 ])
 
 
+def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=5):
+    # TODO: split MSVD into train / test
+    pairs, Anns = [], []
+    vid_anns = {}
+
+    with open(msvd_ana_file, "r") as file:
+        lines = file.readlines()
+        print("Num of lines = ", len(lines))
+        for line in lines:
+            if line != "\n" and line[0] != "#":
+                pairs.append(line)
+
+    for pair in pairs:
+        img_name = pair.split(' ')[0]
+        sent_ana = pair[len(img_name) + 1:-1]
+
+        if img_name not in vid_anns:
+            # Create a list of [path_to_image]
+            img_keys = []
+            # Discard clip with less than N frames
+            if len(os.listdir(join(skipped_dir, img_name))) < min_frame_per_clip:
+                continue
+
+            for frame in sorted(os.listdir(join(skipped_dir, img_name)), key=lambda x: int(x.split('.')[0][6:])):
+                img_keys.append(join(skipped_dir, img_name, frame))
+
+            vid_anns[img_name] = (img_keys, [sent_ana])
+        else:
+            if sent_ana in vid_anns[img_name][1]:
+                continue
+            vid_anns[img_name][1].append(sent_ana)
+
+    for idx, (key, val) in enumerate(vid_anns.items()):
+        for index in range(len(val[1])):
+            for i in range(len(val[0]) - min_frame_per_clip + 1):
+                tuple_item = (val[0][i:i + min_frame_per_clip], val[1][index])
+                Anns.append(tuple_item)
+
+    return Anns
+
+
 def read_deepdiary(dirname, filename):
     with open(filename, "r") as file:
         pairs_str = file.read()
@@ -94,7 +135,7 @@ class CocoCaption(Dataset):
             self.annot = self.annot[: limit]
 
         self.tokenizer = BertTokenizer.from_pretrained(
-            'bert-base-uncased', do_lower=True)
+            'bert-base-uncased', do_lower=True, local_files_only=True)
         self.max_length = max_length + 1
 
     def _process(self, image_id):

@@ -57,6 +57,88 @@ class Transformer(nn.Module):
         return hs
 
 
+# SEPARATE ENCODER & DECODER
+class Encoder(nn.Module):
+
+    def __init__(self, config, d_model=512, nhead=8, num_encoder_layers=6, dim_feedforward=2048, dropout=0.1,
+                 activation="relu", normalize_before=False, return_intermediate_dec=False):
+        super().__init__()
+
+        encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
+                                                dropout, activation, normalize_before)
+        encoder_norm = nn.LayerNorm(d_model) if normalize_before else None
+        self.encoder = TransformerEncoder(
+            encoder_layer, num_encoder_layers, encoder_norm)
+
+        self._reset_parameters()
+
+        self.d_model = d_model
+        self.nhead = nhead
+
+    def _reset_parameters(self):
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
+
+    def forward(self, src, mask, pos_embed):
+        # flatten NxCxHxW to HWxNxC
+        bs, c, h, w = src.shape
+        src = src.flatten(2).permute(2, 0, 1)
+        pos_embed = pos_embed.flatten(2).permute(2, 0, 1)
+        mask = mask.flatten(1)
+
+        #print("Input X size = ", src.shape)
+        #print(mask.shape, pos_embed.shape)
+        # Utilize 'src_key_padding_mask' as Temporal mask?
+        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
+
+        #print("Encoder out shape = ", memory.shape)
+        return memory, mask, pos_embed
+
+
+class Decoder(nn.Module):
+
+    def __init__(self, config, d_model=512, nhead=8, num_decoder_layers=6, dim_feedforward=2048, dropout=0.1,
+                 activation="relu", normalize_before=False, return_intermediate_dec=False):
+        super().__init__()
+
+        self.embeddings = DecoderEmbeddings(config)
+        decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
+                                                dropout, activation, normalize_before)
+        decoder_norm = nn.LayerNorm(d_model)
+        self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
+                                          return_intermediate=return_intermediate_dec)
+
+        self._reset_parameters()
+
+        self.d_model = d_model
+        self.nhead = nhead
+
+    def _reset_parameters(self):
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
+
+    def forward(self, memory, tgt, tgt_mask, mask=None, pos_embed=None):
+
+        seq, bs, d_model = memory.shape
+
+        #print(tgt.shape, tgt_mask.shape)
+        tgt = self.embeddings(tgt).permute(1, 0, 2)
+        query_embed = self.embeddings.position_embeddings.weight.unsqueeze(1)
+        #print(query_embed.shape)
+        query_embed = query_embed.repeat(1, bs, 1)
+
+        #print(tgt.shape, memory.shape)
+        #print(query_embed.shape, generate_square_subsequent_mask(len(tgt)).shape)
+        hs = self.decoder(tgt, memory, memory_key_padding_mask=mask, tgt_key_padding_mask=tgt_mask,
+                          pos=pos_embed, query_pos=query_embed,
+                          tgt_mask=generate_square_subsequent_mask(len(tgt)).to(tgt.device))
+
+        #print("out shape = ", hs.shape)
+        return hs
+
+
 class TransformerEncoder(nn.Module):
 
     def __init__(self, encoder_layer, num_layers, norm=None):

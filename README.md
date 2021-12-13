@@ -1,5 +1,8 @@
-**CA⫶TR**: Image Captioning with Transformers
+EgoTransformer: based on CATR
 ========
+
+A testing split of Deepdiary dataset with ego-captions can be found [here](https://drive.google.com/drive/folders/1fdx8nunJ8HJ2zyjZsX6x3XQECEGBAswi?usp=sharing).
+
 PyTorch training code and pretrained models for **CATR** (**CA**ption **TR**ansformer).
 
 The models are also available via torch hub,

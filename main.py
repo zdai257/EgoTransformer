@@ -8,7 +8,7 @@ import os
 
 from models import utils, caption
 from datasets import coco
-from configuration import Config
+from configuration import *
 from engine import train_one_epoch, evaluate
 
 
@@ -20,8 +20,12 @@ def main(config):
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    model, criterion = caption.build_model(config)
+    ### Select Model ###
+    #model, _ = caption.build_model(config)
+    # New Model
+    model, _ = caption.build_model_bs(config)
     model.to(device)
+    #print(model)
 
     n_parameters = sum(p.numel()
                        for p in model.parameters() if p.requires_grad)
@@ -56,6 +60,13 @@ def main(config):
     data_loader_val = DataLoader(dataset_val, config.batch_size,
                                  sampler=sampler_val, drop_last=False, num_workers=config.num_workers)
 
+    # Redefine criterion
+    print("Ignored index: ", dataset_val.tokenizer.convert_tokens_to_ids(dataset_val.tokenizer._pad_token))
+    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+
+    # Free GPU memory n allow growth
+    torch.cuda.empty_cache()
+
     if os.path.exists(config.checkpoint):
         print("Loading Checkpoint...")
         checkpoint = torch.load(config.checkpoint, map_location='cpu')
@@ -63,6 +74,7 @@ def main(config):
         optimizer.load_state_dict(checkpoint['optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         config.start_epoch = checkpoint['epoch'] + 1
+        print("Current checkpoint epoch = %d" % checkpoint['epoch'])
 
     print("Start Training..")
     for epoch in range(config.start_epoch, config.epochs):
@@ -86,5 +98,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config()
+    config = Config2()
     main(config)
