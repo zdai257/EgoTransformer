@@ -54,6 +54,32 @@ val_transform = tv.transforms.Compose([
 ])
 
 
+def read_deepdiary(dirname, filename):
+    with open(filename, "r") as file:
+        pairs_str = file.read()
+        pairs = pairs_str.split('\n')[1:]
+
+    anns = []
+    for pair in pairs:
+        img_name = pair.split(' ')[0]
+        sent_ana = pair.split('.jpg ')[-1]
+        if img_name in os.listdir(dirname):
+            anns.append((img_name, sent_ana))
+
+    img_names = {}
+
+    for pair in pairs:
+        img_name = pair.split(' ')[0]
+        sent_ana = pair.split('.jpg ')[-1]
+
+        if img_name not in img_names:
+            img_names[img_name] = [sent_ana]
+        else:
+            img_names[img_name].append(sent_ana)
+
+    return anns, img_names
+
+
 class CocoCaption(Dataset):
     def __init__(self, root, ann, max_length, limit, transform=train_transform, mode='training'):
         super().__init__()

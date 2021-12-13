@@ -137,3 +137,10 @@ dmypy.json
 .pytype/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+.idea/
+Data/
+images/
+WordEmbeddings/
+*.pth
+
