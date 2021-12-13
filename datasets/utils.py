@@ -27,6 +27,21 @@ def nested_tensor_from_tensor_list(tensor_list: List[Tensor]):
         for img, pad_img, m in zip(tensor_list, tensor, mask):
             pad_img[: img.shape[0], : img.shape[1], : img.shape[2]].copy_(img)
             m[: img.shape[1], :img.shape[2]] = False
+
+    # for Video
+    elif tensor_list[0].ndim == 4:
+
+        max_size = [3, MAX_DIM, MAX_DIM, tensor_list[0].shape[-1]]
+        # min_size = tuple(min(s) for s in zip(*[img.shape for img in tensor_list]))
+        batch_shape = [len(tensor_list)] + max_size
+        b, c, h, w, t = batch_shape
+        dtype = tensor_list[0].dtype
+        device = tensor_list[0].device
+        tensor = torch.zeros(batch_shape, dtype=dtype, device=device)
+        mask = torch.ones((b, h, w, t), dtype=torch.bool, device=device)
+        for img, pad_img, m in zip(tensor_list, tensor, mask):
+            pad_img[: img.shape[0], : img.shape[1], : img.shape[2], : img.shape[3]].copy_(img)
+            m[: img.shape[1], :img.shape[2], : img.shape[3]] = False
     else:
         raise ValueError('not supported')
     return NestedTensor(tensor, mask)

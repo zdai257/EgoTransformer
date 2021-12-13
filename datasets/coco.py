@@ -1,3 +1,4 @@
+import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
 import torchvision as tv
@@ -39,6 +40,16 @@ class RandomRotation:
 
 train_transform = tv.transforms.Compose([
     RandomRotation(),
+    tv.transforms.Lambda(under_max),
+    tv.transforms.ColorJitter(brightness=[0.5, 1.3], contrast=[
+                              0.8, 1.5], saturation=[0.2, 1.5]),
+    tv.transforms.RandomHorizontalFlip(),
+    tv.transforms.ToTensor(),
+    tv.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+])
+
+train_transform_msvd = tv.transforms.Compose([
+    RandomRotation(angles=[0]),
     tv.transforms.Lambda(under_max),
     tv.transforms.ColorJitter(brightness=[0.5, 1.3], contrast=[
                               0.8, 1.5], saturation=[0.2, 1.5]),
@@ -121,6 +132,91 @@ def read_deepdiary(dirname, filename):
     return anns, img_names
 
 
+class DeepDiary(Dataset):
+    def __init__(self, root, ann, max_length, limit, transform=val_transform, mode='deepdiary'):
+        super().__init__()
+
+        self.root = root
+        self.transform = transform
+
+        if mode == 'deepdiary':
+            # self.annot is a list of tuple of ('000000XXXXXX.jpg', "A man is sitting")
+            self.annot = ann
+        else:
+            raise ValueError("DeepDiary does not support this mode.")
+
+        self.tokenizer = BertTokenizer.from_pretrained(
+            'bert-base-uncased', do_lower=True, local_files_only=True)
+        self.max_length = max_length + 1
+
+    def __len__(self):
+        return len(self.annot)
+
+    def __getitem__(self, idx):
+        image_id, caption = self.annot[idx]
+        image = Image.open(os.path.join(self.root, image_id))
+        if self.transform:
+            image = self.transform(image)
+
+        image = nested_tensor_from_tensor_list(image.unsqueeze(0))
+
+        caption_encoded = self.tokenizer.encode_plus(
+            caption, max_length=self.max_length, pad_to_max_length=True, return_attention_mask=True, return_token_type_ids=False, truncation=True)
+        # caption_encoded is a dict of {'input_ids': <a list of vocab indexes>, 'attention_mask': [1, 1, 1, 0 ,0 ...]
+        caption = np.array(caption_encoded['input_ids'])
+        cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
+
+        return image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask
+
+
+class MSVDCaption(Dataset):
+    def __init__(self, root, vid_ann, max_length, limit, transform=train_transform_msvd, mode='training',
+                 frame_per_clip=5):
+        super().__init__()
+        self.root = root
+        self.transform = transform
+
+        # self.annot is a list of tuple (['frame0.jpg', 'frame1.jpg' ...], ["A man is sitting", "An old man", ...])
+        if mode == 'training':
+            self.annot = vid_ann
+        elif mode == 'validation':
+            pass
+        else:
+            raise ValueError("MSVD does not support this mode.")
+
+        self.tokenizer = BertTokenizer.from_pretrained(
+            'bert-base-uncased', do_lower=True, local_files_only=True)
+        self.max_length = max_length + 1
+
+    def __len__(self):
+        return len(self.annot)
+
+    def __getitem__(self, idx):
+        image_lst, caption = self.annot[idx]
+        images = []
+        for img_path in image_lst:
+            image = Image.open(img_path)
+            if self.transform:
+                image = self.transform(image)
+            #image = nested_tensor_from_tensor_list(image.unsqueeze(0))
+            images.append(image.unsqueeze(3))
+
+        #print(images[0].shape, images[-1].shape)
+        tensor_images = torch.cat(images, dim=3)
+        #print("After cat shape = ", tensor_images.shape)
+        nest_images = nested_tensor_from_tensor_list(tensor_images.unsqueeze(0))
+
+        #print(caption)
+        caption_encoded = self.tokenizer.encode_plus(
+            caption, max_length=self.max_length, pad_to_max_length=True, return_attention_mask=True, return_token_type_ids=False, truncation=True)
+        # caption_encoded is a dict of {'input_ids': <a list of vocab indexes>, 'attention_mask': [1, 1, 1, 0 ,0 ...]
+        #print(caption_encoded)
+        caption = np.array(caption_encoded['input_ids'])
+        cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
+
+        return nest_images.tensors.squeeze(0), nest_images.mask.squeeze(0), caption, cap_mask
+
+
 class CocoCaption(Dataset):
     def __init__(self, root, ann, max_length, limit, transform=train_transform, mode='training'):
         super().__init__()
@@ -182,3 +278,25 @@ def build_dataset(config, mode='training'):
 
     else:
         raise NotImplementedError(f"{mode} not supported")
+
+def build_dataset_deepdiary(config, mode='deepdiary'):
+    data_dir = join(config.dir, 'amt_data')
+    data_file = join(data_dir, 'amt_list.txt')
+    anns, _ = read_deepdiary(data_dir, data_file)
+    data = DeepDiary(data_dir, anns, max_length=config.max_position_embeddings,
+                     limit=config.limit, transform=val_transform, mode=mode)
+    return data
+
+def build_dataset_msvd(config, mode='training'):
+    if mode == 'training':
+        msvd_data_dir = config.msvd_data_dir
+        msvd_ana_file = join(msvd_data_dir, 'AllVideoDescriptions.txt')
+        skipped_dir = join(msvd_data_dir, 'skipped')
+        vid_anns = read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=config.frame_per_clip)
+        data = MSVDCaption(msvd_data_dir, vid_anns, max_length=config.max_position_embeddings,
+                           limit=config.limit, transform=train_transform_msvd, mode=mode,
+                           frame_per_clip=config.frame_per_clip)
+        return data
+    else:
+        raise NotImplementedError(f"{mode} not supported")
+

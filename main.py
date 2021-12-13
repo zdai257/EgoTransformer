@@ -43,7 +43,9 @@ def main(config):
         param_dicts, lr=config.lr, weight_decay=config.weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
 
-    dataset_train = coco.build_dataset(config, mode='training')
+    #dataset_train = coco.build_dataset(config, mode='training')
+    dataset_train = coco.build_dataset_msvd(config, mode='training')
+
     dataset_val = coco.build_dataset(config, mode='validation')
     print(f"Train: {len(dataset_train)}")
     print(f"Valid: {len(dataset_val)}")
@@ -98,5 +100,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config2()
+    config = Config4()
     main(config)

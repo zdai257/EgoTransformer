@@ -244,6 +244,52 @@ class CaptionWithEncoderDecoder(nn.Module):
         return decoded_batch, decoded_batch_beams
 
 
+class CaptionWithVideoEncoder(nn.Module):
+    def __init__(self, backbone, Encoder, hidden_dim):
+        super(CaptionWithVideoEncoder, self).__init__()
+        self.backbone = backbone
+        # Channel dimension reduction!
+        self.input_proj = nn.Conv2d(backbone.num_channels, hidden_dim, kernel_size=1)
+        self.Encoder = Encoder
+
+    def forward(self, samples):
+        if not isinstance(samples, NestedTensor):
+            #samples = nested_tensor_from_tensor_list(samples)
+            raise TypeError("Haven't converted input <samples> to NestedTensor!")
+
+        T = int(samples.tensors.shape[-1])
+        # Samples (video input) size scaled to <= 299 per side, of size (B, 3, <=299, <=299, T)
+        src_lst, mask_lst, pos_lst = [], [], []
+        for sample_idx in range(T):
+            sample, sample_m = samples.decompose()
+            sample = NestedTensor(sample[:, :, :, :, sample_idx], sample_m[:, :, :, sample_idx])
+            # Get feature_embedding & pos_encoding of each frame
+            feature0, pos0 = self.backbone(sample)
+            # Length of List of tensor/NestedTensor always 1
+            src0, mask0 = feature0[-1].decompose()
+            src_lst.append(self.input_proj(src0).unsqueeze(-1))
+            mask_lst.append(mask0.unsqueeze(-1))
+            pos_lst.append(pos0[-1].unsqueeze(-1))
+
+        src = torch.cat(src_lst, dim=-1)
+        mask = torch.cat(mask_lst, dim=-1)
+        pos = torch.cat(pos_lst, dim=-1)
+        assert mask is not None
+
+        # Error
+        #pos = self.pos_embedding(mask, samples.tensors.device).to(samples.tensors.dtype)
+        pos_encode = torch.empty(pos.shape, dtype=pos.dtype, device=samples.tensors.device)
+        for t in range(T):
+            pos_encode[:, :, :, :, t] = pos[:, :, :, :, t] * (t + 1) / T
+
+        # Input-tensor: {X (B, 256, 19, 19, 5), mask_all_False (B, 256, 19, 19, 5), pos_encode (B, 256, 19, 19, 5)}
+        # caption (B, 128), cap_mask (B, 128)
+
+        memory, enc_mask, pos_embed = self.Encoder(src, mask, pos_encode)
+
+        return memory, enc_mask, pos_embed
+
+
 class CaptionWithEncoder(nn.Module):
     def __init__(self, backbone, Encoder, hidden_dim):
         super(CaptionWithEncoder, self).__init__()
@@ -322,7 +368,10 @@ def build_model_bs(config):
     my_decoder = Decoder(config, d_model=config.hidden_dim, nhead=config.nheads, num_decoder_layers=config.dec_layers,
                          dim_feedforward=config.dim_feedforward, dropout=config.dropout,
                          activation="relu", normalize_before=config.pre_norm, return_intermediate_dec=False)
-    cap_encoder = CaptionWithEncoder(backbone, my_encoder, config.hidden_dim)
+    if config.modality == 'image':
+        cap_encoder = CaptionWithEncoder(backbone, my_encoder, config.hidden_dim)
+    else:
+        cap_encoder = CaptionWithVideoEncoder(backbone, my_encoder, config.hidden_dim)
     cap_decoder = CaptionWithDecoder(my_decoder, config.hidden_dim, config.vocab_size)
 
     model = CaptionWithEncoderDecoder(cap_encoder, cap_decoder, config.max_position_embeddings, vocab_size=config.vocab_size)

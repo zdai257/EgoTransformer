@@ -81,8 +81,8 @@ class Encoder(nn.Module):
                 nn.init.xavier_uniform_(p)
 
     def forward(self, src, mask, pos_embed):
-        # flatten NxCxHxW to HWxNxC
-        bs, c, h, w = src.shape
+        # flatten BxCxHxW or BxCxHxWxT (video) to SeqxBxC
+
         src = src.flatten(2).permute(2, 0, 1)
         pos_embed = pos_embed.flatten(2).permute(2, 0, 1)
         mask = mask.flatten(1)
