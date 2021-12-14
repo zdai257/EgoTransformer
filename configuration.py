@@ -178,4 +178,5 @@ class Config4(object):
         self.modality = 'video'
         self.msvd_data_dir = "/home/zdai/repos/MSVD"
         self.frame_per_clip = 5
+        self.min_frame_per_clip = 7
 

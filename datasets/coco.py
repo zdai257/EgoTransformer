@@ -9,7 +9,8 @@ import random
 import os
 from os.path import join
 from transformers import BertTokenizer
-
+from sklearn.model_selection import train_test_split
+import pickle
 from .utils import nested_tensor_from_tensor_list, read_json
 
 MAX_DIM = 299
@@ -65,10 +66,11 @@ val_transform = tv.transforms.Compose([
 ])
 
 
-def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=5):
-    # TODO: split MSVD into train / test
-    pairs, Anns = [], []
+def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=7, window_frame_per_clip=5):
+    pairs, Anns_train, Anns_test = [], [], []
     vid_anns = {}
+
+    assert window_frame_per_clip <= min_frame_per_clip
 
     with open(msvd_ana_file, "r") as file:
         lines = file.readlines()
@@ -97,13 +99,21 @@ def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=5):
                 continue
             vid_anns[img_name][1].append(sent_ana)
 
+    # vid_anns is a dict of {'vid_name': (['img1.jpg', 'img2.jpg' ...], ['cap1', 'cap2' ...]), ... ...}
+    # print(next(iter(vid_anns)))
+    X_train, X_test = train_test_split(list(vid_anns.keys()), test_size=0.3, random_state=42, shuffle=True)
+
     for idx, (key, val) in enumerate(vid_anns.items()):
         for index in range(len(val[1])):
-            for i in range(len(val[0]) - min_frame_per_clip + 1):
-                tuple_item = (val[0][i:i + min_frame_per_clip], val[1][index])
-                Anns.append(tuple_item)
+            for i in range(len(val[0]) - window_frame_per_clip + 1):
+                tuple_item = (val[0][i:i + window_frame_per_clip], val[1][index])
+                # Split vid_anns based on whether vid_name in X_train/X_test lists
+                if key in X_train:
+                    Anns_train.append(tuple_item)
+                elif key in X_test:
+                    Anns_test.append(tuple_item)
 
-    return Anns
+    return Anns_train, Anns_test
 
 
 def read_deepdiary(dirname, filename):
@@ -180,7 +190,7 @@ class MSVDCaption(Dataset):
         if mode == 'training':
             self.annot = vid_ann
         elif mode == 'validation':
-            pass
+            self.annot = vid_ann
         else:
             raise ValueError("MSVD does not support this mode.")
 
@@ -288,13 +298,34 @@ def build_dataset_deepdiary(config, mode='deepdiary'):
     return data
 
 def build_dataset_msvd(config, mode='training'):
+    msvd_data_dir = config.msvd_data_dir
+    msvd_ana_file = join(msvd_data_dir, 'AllVideoDescriptions.txt')
+    skipped_dir = join(msvd_data_dir, 'skipped')
+
+    train_file = 'msvd_skip-{}_train_min-{}_win-{}.pickle'.format(1, config.min_frame_per_clip, config.frame_per_clip)
+    test_file = 'msvd_skip-{}_test_min-{}_win-{}.pickle'.format(1, config.min_frame_per_clip, config.frame_per_clip)
+    if os.path.exists(train_file) and os.path.exists(test_file):
+        print("Loading existing .pickle of splitted Train/Val MSVD datasets!")
+        with open(train_file, 'rb') as f:
+            anns_train = pickle.load(f)
+        with open(test_file, 'rb') as f:
+            anns_test = pickle.load(f)
+    else:
+        anns_train, anns_test = read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=config.min_frame_per_clip,
+                                          window_frame_per_clip=config.frame_per_clip)
+        with open(train_file, 'wb') as f:
+            pickle.dump(anns_train, f)
+        with open(test_file, 'wb') as f:
+            pickle.dump(anns_test, f)
+
     if mode == 'training':
-        msvd_data_dir = config.msvd_data_dir
-        msvd_ana_file = join(msvd_data_dir, 'AllVideoDescriptions.txt')
-        skipped_dir = join(msvd_data_dir, 'skipped')
-        vid_anns = read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=config.frame_per_clip)
-        data = MSVDCaption(msvd_data_dir, vid_anns, max_length=config.max_position_embeddings,
+        data = MSVDCaption(msvd_data_dir, anns_train, max_length=config.max_position_embeddings,
                            limit=config.limit, transform=train_transform_msvd, mode=mode,
+                           frame_per_clip=config.frame_per_clip)
+        return data
+    elif mode == 'validation':
+        data = MSVDCaption(msvd_data_dir, anns_test, max_length=config.max_position_embeddings,
+                           limit=config.limit, transform=val_transform, mode=mode,
                            frame_per_clip=config.frame_per_clip)
         return data
     else:

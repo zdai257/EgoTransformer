@@ -3,3 +3,8 @@ torchvision
 numpy
 transformers
 tqdm
+matplotlib
+pycocoevalcap
+PIL
+sklearn
+pickle

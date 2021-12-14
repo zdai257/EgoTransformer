@@ -45,8 +45,8 @@ def main(config):
 
     #dataset_train = coco.build_dataset(config, mode='training')
     dataset_train = coco.build_dataset_msvd(config, mode='training')
-
-    dataset_val = coco.build_dataset(config, mode='validation')
+    #dataset_val = coco.build_dataset(config, mode='validation')
+    dataset_val = coco.build_dataset_msvd(config, mode='validation')
     print(f"Train: {len(dataset_train)}")
     print(f"Valid: {len(dataset_val)}")
 
