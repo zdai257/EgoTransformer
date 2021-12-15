@@ -276,11 +276,11 @@ class CaptionWithVideoEncoder(nn.Module):
         pos = torch.cat(pos_lst, dim=-1)
         assert mask is not None
 
-        # Error
-        #pos = self.pos_embedding(mask, samples.tensors.device).to(samples.tensors.dtype)
+        #print(pos.max(), pos.min())  # pos values in range [-1, 1]
+        pos_max, pos_min = 1, -1
         pos_encode = torch.empty(pos.shape, dtype=pos.dtype, device=samples.tensors.device)
         for t in range(T):
-            pos_encode[:, :, :, :, t] = pos[:, :, :, :, t] * (t + 1) / T
+            pos_encode[:, :, :, :, t] = pos[:, :, :, :, t] / T + pos_min + (t+0.5) * (pos_max - pos_min) / T
 
         # Input-tensor: {X (B, 256, 19, 19, 5), mask_all_False (B, 256, 19, 19, 5), pos_encode (B, 256, 19, 19, 5)}
         # caption (B, 128), cap_mask (B, 128)
