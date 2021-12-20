@@ -86,6 +86,14 @@ class Config2(object):
         self.dir = "/home/zdai/repos/EMS-cGAN/coco2017"
         self.limit = -1
 
+        # Validation sample limit
+        self.val_limit = 500
+        # Video Dataset
+        self.modality = 'image'
+        self.msvd_data_dir = "/home/zdai/repos/MSVD"
+        self.frame_per_clip = 5
+        self.min_frame_per_clip = 7
+
 class Config3(object):
     def __init__(self):
         # Learning Rates

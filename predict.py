@@ -19,7 +19,7 @@ from pycocoevalcap.spice.spice import Spice, SPICE_JAR
 
 parser = argparse.ArgumentParser(description='Image Captioning')
 parser.add_argument('--path', type=str, help='path to image', required=True)
-parser.add_argument('--v', type=str, help='version', default='v3')
+parser.add_argument('--v', type=str, help='version', default='v0')  # default not using pretrained
 parser.add_argument('--checkpoint', type=str, help='checkpoint path', default=None)
 args = parser.parse_args()
 image_path = args.path
@@ -42,7 +42,9 @@ else:
       if not os.path.exists(checkpoint_path):
         raise NotImplementedError('Give valid checkpoint path')
       print("Found checkpoint! Loading!")
-      model,_ = caption.build_model(config)
+      #model, _ = caption.build_model(config)
+      model, _ = caption.build_model_bs(config)
+
       print("Loading Checkpoint...")
       checkpoint = torch.load(checkpoint_path, map_location='cpu')
       model.load_state_dict(checkpoint['model'])
@@ -108,7 +110,7 @@ def create_caption_and_mask(start_token, max_length):
     return caption_template, mask_template
 
 
-caption, cap_mask = create_caption_and_mask(
+cap, cap_mask = create_caption_and_mask(
     start_token, config.max_position_embeddings)
 
 
@@ -116,8 +118,10 @@ caption, cap_mask = create_caption_and_mask(
 def evaluate():
     model.eval()
     decoded_batch_beams = None
+
+    '''
     for i in range(config.max_position_embeddings - 1):
-        predictions = model(sample, caption, cap_mask)
+        predictions = model(sample, cap, cap_mask)
         predictions = predictions[:, i, :]
         predicted_id = torch.argmax(predictions, axis=-1)
 
@@ -126,11 +130,11 @@ def evaluate():
 
         caption[:, i+1] = predicted_id[0]
         cap_mask[:, i+1] = False
-
+    '''
     ### Greedy ###
-    #caption, decoded_batch_beams = model.decode(image, caption, cap_mask, beam_width=None, diverse_m=3)
+    #caption, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=None, diverse_m=3)
     ### Beam Search ###
-    # caption, decoded_batch_beams = model.decode(image, caption, cap_mask, beam_width=5, diverse_m=3)
+    caption, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=5, diverse_m=3)
     return caption, decoded_batch_beams
 
 output, outputs = evaluate()
