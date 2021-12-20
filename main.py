@@ -13,6 +13,9 @@ from engine import train_one_epoch, evaluate
 
 
 def main(config):
+    available_gpus = [torch.cuda.device(i) for i in range(torch.cuda.device_count())]
+    for idx, dev in enumerate(available_gpus):
+        print("Available GPU-{} name: {}".format(idx, dev))
     device = torch.device(config.device)
     print(f'Initializing Device: {device}')
 
@@ -24,6 +27,10 @@ def main(config):
     #model, _ = caption.build_model(config)
     # New Model
     model, _ = caption.build_model_bs(config)
+
+    # Multi-GPU
+    model = torch.nn.DataParallel(model)
+
     model.to(device)
     #print(model)
 
@@ -113,5 +120,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config4()
+    config = Config2()
     main(config)
