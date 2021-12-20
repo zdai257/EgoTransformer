@@ -54,6 +54,8 @@ class Config2(object):
         self.lr_drop = 20
         self.start_epoch = 0
         self.weight_decay = 1e-4
+        # Warm Up
+        self.warmup_steps = 50
 
         # Backbone
         self.backbone = 'resnet101'
@@ -148,6 +150,8 @@ class Config4(object):
         self.lr_drop = 20
         self.start_epoch = 0
         self.weight_decay = 1e-4
+        # Warm Up
+        self.warmup_steps = 0
 
         # Backbone
         self.backbone = 'resnet101'

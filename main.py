@@ -1,6 +1,6 @@
 import torch
 from torch.utils.data import DataLoader
-
+from transformers import get_linear_schedule_with_warmup
 import numpy as np
 import time
 import sys
@@ -41,12 +41,25 @@ def main(config):
     ]
     optimizer = torch.optim.AdamW(
         param_dicts, lr=config.lr, weight_decay=config.weight_decay)
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
+    ### lr_scheduler with / without warmup ###
+    if config.warmup_steps == 0:
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
+    else:
+        # lr_scheduler = get_cosine_schedule_with_warmup(
+        lr_scheduler = get_linear_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=config.warmup_steps,
+            num_training_steps=config.batch_size * config.epochs - config.warmup_steps,
+        )
 
-    #dataset_train = coco.build_dataset(config, mode='training')
-    dataset_train = coco.build_dataset_msvd(config, mode='training')
-    #dataset_val = coco.build_dataset(config, mode='validation')
-    dataset_val = coco.build_dataset_msvd(config, mode='validation')
+    if config.modality == 'image':
+        dataset_train = coco.build_dataset(config, mode='training')
+        dataset_val = coco.build_dataset(config, mode='validation')
+    elif config.modality == 'video':
+        dataset_train = coco.build_dataset_msvd(config, mode='training')
+        dataset_val = coco.build_dataset_msvd(config, mode='validation')
+    else:
+        raise TypeError("Input Modality not supported!")
     print(f"Train: {len(dataset_train)}")
     print(f"Valid: {len(dataset_val)}")
 
