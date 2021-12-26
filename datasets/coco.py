@@ -104,14 +104,22 @@ def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=7, window_frame_per
     X_train, X_test = train_test_split(list(vid_anns.keys()), test_size=0.3, random_state=42, shuffle=True)
 
     for idx, (key, val) in enumerate(vid_anns.items()):
-        for index in range(len(val[1])):
+        #for index in range(len(val[1])):
+        for _ in range(1):
             for i in range(len(val[0]) - window_frame_per_clip + 1):
-                tuple_item = (val[0][i:i + window_frame_per_clip], val[1][index])
+                # Exhaustive ann sample or not
+                #tuple_item = (val[0][i:i + window_frame_per_clip], val[1][index])
+                tuple_item = (val[0][i:i + window_frame_per_clip], random.choice(val[1]))
+
                 # Split vid_anns based on whether vid_name in X_train/X_test lists
                 if key in X_train:
                     Anns_train.append(tuple_item)
                 elif key in X_test:
                     Anns_test.append(tuple_item)
+
+                # Break to avoid sample too many from long clips
+                if i > 15:
+                    break
 
     return Anns_train, Anns_test
 

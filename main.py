@@ -120,5 +120,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config2()
+    config = Config4()
     main(config)

@@ -151,7 +151,7 @@ class Config4(object):
         self.start_epoch = 0
         self.weight_decay = 1e-4
         # Warm Up
-        self.warmup_steps = 0
+        self.warmup_steps = 10
 
         # Backbone
         self.backbone = 'resnet101'
@@ -163,7 +163,7 @@ class Config4(object):
         self.seed = 42
         self.batch_size = 1  #32
         self.num_workers = 8
-        self.checkpoint = './checkpoint.pth'
+        self.checkpoint = './checkpoint_vid.pth'
         self.clip_max_norm = 0.1
 
         # Transformer
@@ -189,6 +189,6 @@ class Config4(object):
         # Video Dataset
         self.modality = 'video'
         self.msvd_data_dir = "/home/zdai/repos/MSVD"
-        self.frame_per_clip = 5
+        self.frame_per_clip = 2
         self.min_frame_per_clip = 7
 
