@@ -42,6 +42,7 @@ class PositionEmbeddingSine(nn.Module):
         pos_x = torch.stack((pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()), dim=4).flatten(3)
         pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
+        #print(pos.shape)
         return pos
 
 
@@ -82,7 +83,7 @@ class PositionEmbeddingVideoSine(nn.Module):
         pos_t = torch.stack((pos_t[:, :, :, :, 0::2].sin(), pos_t[:, :, :, :, 1::2].cos()), dim=5).flatten(4)
 
         pos = torch.cat((pos_y, pos_x, pos_t), dim=4).permute(0, 4, 1, 2, 3)
-        #print(pos)
+        #print(pos.shape)
         return pos
 
 

@@ -53,7 +53,8 @@ class FrozenBatchNorm2d(torch.nn.Module):
 
 class BackboneBase(nn.Module):
 
-    def __init__(self, backbone: nn.Module, train_backbone: bool, num_channels: int, return_interm_layers: bool):
+    def __init__(self, backbone: nn.Module, train_backbone: bool, num_channels: int, return_interm_layers: bool,
+                 returned_layer_name='layer4'):
         super().__init__()
         for name, parameter in backbone.named_parameters():
             if not train_backbone or 'layer2' not in name and 'layer3' not in name and 'layer4' not in name:
@@ -61,7 +62,7 @@ class BackboneBase(nn.Module):
         if return_interm_layers:
             return_layers = {"layer1": "0", "layer2": "1", "layer3": "2", "layer4": "3"}
         else:
-            return_layers = {'layer4': "0"}
+            return_layers = {returned_layer_name: "0"}
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
         self.num_channels = num_channels
 
@@ -81,12 +82,14 @@ class Backbone(BackboneBase):
     def __init__(self, name: str,
                  train_backbone: bool,
                  return_interm_layers: bool,
-                 dilation: bool):
+                 dilation: bool,
+                 out_layer='layer4'):
         backbone = getattr(torchvision.models, name)(
             replace_stride_with_dilation=[False, False, dilation],
             pretrained=is_main_process(), norm_layer=FrozenBatchNorm2d)
         num_channels = 512 if name in ('resnet18', 'resnet34') else 2048
-        super().__init__(backbone, train_backbone, num_channels, return_interm_layers)
+        super().__init__(backbone, train_backbone, num_channels, return_interm_layers,
+                         returned_layer_name=out_layer)
 
 
 class Joiner(nn.Sequential):
@@ -109,7 +112,11 @@ def build_backbone(config):
     position_embedding = build_position_encoding(config)
     train_backbone = config.lr_backbone > 0
     return_interm_layers = False
-    backbone = Backbone(config.backbone, train_backbone, return_interm_layers, config.dilation)
+    if config.modality == 'video':
+        backbone = Backbone(config.backbone, train_backbone, return_interm_layers, config.dilation,
+                            out_layer='avgpool')
+    else:
+        backbone = Backbone(config.backbone, train_backbone, return_interm_layers, config.dilation)
 
     model = Joiner(backbone, position_embedding)
     model.num_channels = backbone.num_channels
