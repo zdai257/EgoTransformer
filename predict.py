@@ -48,6 +48,7 @@ else:
       print("Loading Checkpoint...")
       checkpoint = torch.load(checkpoint_path, map_location='cpu')
       model.load_state_dict(checkpoint['model'])
+      print("Current checkpoint epoch = %d" % checkpoint['epoch'])
 
 device = torch.device(config.device)
 print(f'Initializing Device: {device}')

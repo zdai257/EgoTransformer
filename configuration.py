@@ -71,7 +71,7 @@ class Config2(object):
         self.clip_max_norm = 0.1
 
         # Transformer
-        self.hidden_dim = 256
+        self.hidden_dim = 512  #256
         self.pad_token_id = 0
         self.max_position_embeddings = 128
         self.layer_norm_eps = 1e-12

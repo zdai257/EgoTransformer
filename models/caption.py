@@ -231,7 +231,7 @@ class CaptionWithEncoderDecoder(nn.Module):
             i = complete_seqs_scores.index(max(complete_seqs_scores))
             seq = complete_seqs[i]
             # Get top k sequences
-            top_ki = sorted(range(len(complete_seqs_scores)), key=lambda x: complete_seqs_scores[x])[-beam_width:]
+            top_ki = sorted(range(len(complete_seqs_scores)), key=lambda x: complete_seqs_scores[x], reverse=True)[-beam_width:]
             sequence = []
             for i in top_ki:
                 sequence.append(complete_seqs[i])
