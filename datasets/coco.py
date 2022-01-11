@@ -68,6 +68,7 @@ val_transform = tv.transforms.Compose([
 
 def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=7, window_frame_per_clip=5):
     pairs, Anns_train, Anns_test = [], [], []
+    # Host Dict that contains {imgname: (list(path_to_frames), list(sentence_anns))}
     vid_anns = {}
 
     assert window_frame_per_clip <= min_frame_per_clip
@@ -105,7 +106,7 @@ def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=7, window_frame_per
 
     for idx, (key, val) in enumerate(vid_anns.items()):
         #for index in range(len(val[1])):
-        for _ in range(1):
+        if skipped_dir.split('/')[-1] == 'skipped':
             for i in range(len(val[0]) - window_frame_per_clip + 1):
                 # Exhaustive ann sample or not
                 #tuple_item = (val[0][i:i + window_frame_per_clip], val[1][index])
@@ -120,6 +121,19 @@ def read_msvd(msvd_ana_file, skipped_dir, min_frame_per_clip=7, window_frame_per
                 # Break to avoid sample too many from long clips
                 if i > 15:
                     break
+
+        elif skipped_dir.split('/')[-1] == 'skip64':
+            for index in range(len(val[1])):
+                tuple_item = (val[0], val[1][index])
+                if key in X_train:
+                    Anns_train.append(tuple_item)
+                elif key in X_test:
+                    Anns_test.append(tuple_item)
+                # Break to avoid sample too many from long clips
+                if index > 20:
+                    break
+        else:
+            raise ValueError("Sampling sub dir not found!")
 
     return Anns_train, Anns_test
 
@@ -308,7 +322,7 @@ def build_dataset_deepdiary(config, mode='deepdiary'):
 def build_dataset_msvd(config, mode='training'):
     msvd_data_dir = config.msvd_data_dir
     msvd_ana_file = join(msvd_data_dir, 'AllVideoDescriptions.txt')
-    skipped_dir = join(msvd_data_dir, 'skipped')
+    skipped_dir = join(msvd_data_dir, config.msvd_sub_dir)
 
     train_file = 'msvd_skip-{}_train_min-{}_win-{}.pickle'.format(1, config.min_frame_per_clip, config.frame_per_clip)
     test_file = 'msvd_skip-{}_test_min-{}_win-{}.pickle'.format(1, config.min_frame_per_clip, config.frame_per_clip)

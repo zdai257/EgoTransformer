@@ -24,11 +24,11 @@ def main(config):
     np.random.seed(seed)
 
     ### Select Model ###
-    model, _ = caption.build_model(config)
+    #model, _ = caption.build_model(config)
     # New Model
-    #model, _ = caption.build_model_bs(config)
-    print(model)
-    exit()
+    model, _ = caption.build_model_bs(config)
+    #print(model)
+    #exit()
     # Multi-GPU
     model = torch.nn.DataParallel(model)
 
@@ -121,5 +121,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config2()
+    config = Config5()
     main(config)
