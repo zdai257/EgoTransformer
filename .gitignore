@@ -144,4 +144,4 @@ images/
 WordEmbeddings/
 *.pth
 *.pickle
-
+.DS_Store
