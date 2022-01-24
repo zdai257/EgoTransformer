@@ -42,8 +42,8 @@ else:
       if not os.path.exists(checkpoint_path):
         raise NotImplementedError('Give valid checkpoint path')
       print("Found checkpoint! Loading!")
-      model, _ = caption.build_model(config)
-      #model, _ = caption.build_model_bs(config)
+      #model, _ = caption.build_model(config)
+      model, _ = caption.build_model_bs(config)
 
       print("Loading Checkpoint...")
       checkpoint = torch.load(checkpoint_path, map_location='cpu')
@@ -121,7 +121,7 @@ def evaluate():
     model.eval()
     decoded_batch_beams = None
 
-
+    '''
     for i in range(config.max_position_embeddings - 1):
         predictions = model(sample, cap, cap_mask)
         predictions = predictions[:, i, :]
@@ -132,13 +132,14 @@ def evaluate():
 
         cap[:, i+1] = predicted_id[0]
         cap_mask[:, i+1] = False
+    out = cap
     '''
     ### Greedy ###
-    #caption, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=None, diverse_m=3)
+    #out, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=None, diverse_m=3)
     ### Beam Search ###
-    caption, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=5, diverse_m=3)
-    '''
-    return cap, decoded_batch_beams
+    out, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=5, diverse_m=3)
+
+    return out, decoded_batch_beams
 
 output, outputs = evaluate()
 
