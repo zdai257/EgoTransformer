@@ -5,7 +5,7 @@ import numpy as np
 import time
 import sys
 import os
-
+from os.path import join
 from models import utils, caption
 from datasets import coco
 from configuration import *
@@ -113,6 +113,18 @@ def main(config):
             'lr_scheduler': lr_scheduler.state_dict(),
             'epoch': epoch,
         }, config.checkpoint)
+
+        if epoch % 5 == 0 and epoch != 0:
+            save_dir = 'epoch_checks'
+            if not os.path.exists(join(os.getcwd(), save_dir)):
+                os.mkdir(join(os.getcwd(), save_dir))
+
+            torch.save({
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'lr_scheduler': lr_scheduler.state_dict(),
+                'epoch': epoch,
+            }, join(os.getcwd(), save_dir, config.checkpoint.split('/')[-1][:-4] + "_epoch%d".format(epoch) + ".pth"))
 
         validation_loss = evaluate(model, criterion, data_loader_val, device)
         print(f"Validation Loss: {validation_loss}")

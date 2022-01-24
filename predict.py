@@ -50,10 +50,11 @@ else:
       model.load_state_dict(checkpoint['model'])
       print("Current checkpoint epoch = %d" % checkpoint['epoch'])
 
+
 device = torch.device(config.device)
 print(f'Initializing Device: {device}')
 
-load_tokenizer_from_local = True
+load_tokenizer_from_local = False
 
 start_t_tokenizer = time.time()
 if load_tokenizer_from_local:
@@ -163,7 +164,7 @@ try:
 
     metrics = calc_scores(gts, cap_dict)
     print('\n', metrics)
-except KeyError:
+except FileNotFoundError:
     print_metrics = False
     print("\nNo ground-truth caption found for this image.")
 
@@ -174,7 +175,7 @@ ax = fig.add_subplot(1, 1, 1)
 if print_metrics:
 
     ax.set_xlabel("GT1: " + anns[next(iter(cap_dict))][0] +
-                  '\n' + "Transformer: " + result.capitalize() + '\n' + "BLEU-4: {}".format(metrics['Bleu_4'])
+                  '\n' + "CATR: " + result.capitalize() + '\n' + "BLEU-4: {}".format(metrics['Bleu_4'])
                   + '\n' + "METEOR: {}".format(metrics['METEOR'])
                   + '\n' + "ROUGE-L: {}".format(metrics['ROUGE_L'])
                   + '\n' + "CIDEr: {}".format(metrics['CIDEr'])
