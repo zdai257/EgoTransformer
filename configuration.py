@@ -42,6 +42,9 @@ class Config(object):
         self.dir = '../coco'
         self.limit = -1
 
+        # Video dataset
+        self.modality = 'image'
+
 
 class Config2(object):
     def __init__(self):
