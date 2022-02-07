@@ -27,13 +27,12 @@ def main(config):
     #model, _ = caption.build_model(config)
     # New Model
     model, _ = caption.build_model_bs(config)
-    #print(model)
+    #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
     #exit()
     # Multi-GPU
-    model = torch.nn.DataParallel(model)
+    #model = torch.nn.DataParallel(model)
 
     model.to(device)
-    #print(model)
 
     n_parameters = sum(p.numel()
                        for p in model.parameters() if p.requires_grad)
@@ -53,7 +52,7 @@ def main(config):
     if config.warmup_steps == 0:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
     else:
-        # lr_scheduler = get_cosine_schedule_with_warmup(
+        #lr_scheduler = get_cosine_schedule_with_warmup(
         lr_scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=config.warmup_steps,
@@ -90,6 +89,11 @@ def main(config):
     # Free GPU memory n allow growth
     torch.cuda.empty_cache()
 
+    min_loss_val = 100
+    save_dir = 'epoch_checks'
+    if not os.path.exists(join(os.getcwd(), save_dir)):
+        os.mkdir(join(os.getcwd(), save_dir))
+
     if os.path.exists(config.checkpoint):
         print("Loading Checkpoint...")
         checkpoint = torch.load(config.checkpoint, map_location='cpu')
@@ -107,31 +111,30 @@ def main(config):
         lr_scheduler.step()
         print(f"Training Loss: {epoch_loss}")
 
-        torch.save({
-            'model': model.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            'lr_scheduler': lr_scheduler.state_dict(),
-            'epoch': epoch,
-        }, config.checkpoint)
-
-        if epoch % 5 == 0 and epoch != 0:
-            save_dir = 'epoch_checks'
-            if not os.path.exists(join(os.getcwd(), save_dir)):
-                os.mkdir(join(os.getcwd(), save_dir))
-
+        if epoch_loss <= min_loss_val:
+            min_loss_val = epoch_loss
+            best_model_name = config.checkpoint[:-4] + '-best_epoch{}_loss{}.pth'.format(epoch, round(epoch_loss*100))
             torch.save({
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 'lr_scheduler': lr_scheduler.state_dict(),
                 'epoch': epoch,
-            }, join(os.getcwd(), save_dir, config.checkpoint.split('/')[-1][:-4] + "_epoch%d".format(epoch) + ".pth"))
+            }, join(os.getcwd(), save_dir, best_model_name))
+
+        if (epoch + 1) % 5 == 0:
+            model_name = config.checkpoint[:-4] + '-epoch{}_loss{}.pth'.format(epoch, round(epoch_loss*100))
+            torch.save({
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'lr_scheduler': lr_scheduler.state_dict(),
+                'epoch': epoch,
+            }, join(os.getcwd(), save_dir, model_name))
 
         validation_loss = evaluate(model, criterion, data_loader_val, device)
         print(f"Validation Loss: {validation_loss}")
-
         print()
 
 
 if __name__ == "__main__":
-    config = Config5()
+    config = Config2()
     main(config)
