@@ -49,16 +49,16 @@ class Config(object):
 class Config2(object):
     def __init__(self):
         # Learning Rates
-        self.lr_backbone = 1e-5
-        self.lr = 1e-4
+        self.lr_backbone = 3e-3
+        self.lr = 1e-2
 
         # Epochs
-        self.epochs = 30
+        self.epochs = 50
         self.lr_drop = 20
         self.start_epoch = 0
         self.weight_decay = 1e-4
         # Warm Up
-        self.warmup_steps = 50
+        self.warmup_steps = 30
 
         # Backbone
         self.backbone = 'resnet101'
@@ -66,9 +66,9 @@ class Config2(object):
         self.dilation = True
 
         # Basic
-        self.device = 'cuda'
+        self.device = 'cuda:1'
         self.seed = 42
-        self.batch_size = 2  #32
+        self.batch_size = 16  #32
         self.num_workers = 8
         self.checkpoint = './checkpoint.pth'
         self.clip_max_norm = 0.1
@@ -88,7 +88,7 @@ class Config2(object):
         self.pre_norm = True
 
         # Dataset
-        self.dir = "/home/zdai/repos/EMS-cGAN/coco2017"
+        self.dir = "/root/datasets/COCO"
         self.limit = -1
 
         # Validation sample limit

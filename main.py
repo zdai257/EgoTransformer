@@ -93,7 +93,7 @@ def main(config):
     save_dir = 'epoch_checks'
     if not os.path.exists(join(os.getcwd(), save_dir)):
         os.mkdir(join(os.getcwd(), save_dir))
-
+    '''
     if os.path.exists(config.checkpoint):
         print("Loading Checkpoint...")
         checkpoint = torch.load(config.checkpoint, map_location='cpu')
@@ -102,7 +102,7 @@ def main(config):
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         config.start_epoch = checkpoint['epoch'] + 1
         print("Current checkpoint epoch = %d" % checkpoint['epoch'])
-
+    '''
     print("Start Training..")
     for epoch in range(config.start_epoch, config.epochs):
         print(f"Epoch: {epoch}")
