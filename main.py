@@ -91,9 +91,10 @@ def main(config):
 
     min_loss_val = 100
     save_dir = 'epoch_checks'
-    if not os.path.exists(join(os.getcwd(), save_dir)):
-        os.mkdir(join(os.getcwd(), save_dir))
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
 
+    '''
     if os.path.exists(config.checkpoint):
         print("Loading Checkpoint...")
         checkpoint = torch.load(config.checkpoint, map_location='cpu')
@@ -102,6 +103,7 @@ def main(config):
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         config.start_epoch = checkpoint['epoch'] + 1
         print("Current checkpoint epoch = %d" % checkpoint['epoch'])
+    '''
 
     print("Start Training..")
     for epoch in range(config.start_epoch, config.epochs):
@@ -111,27 +113,26 @@ def main(config):
         lr_scheduler.step()
         print(f"Training Loss: {epoch_loss}")
 
-        if epoch_loss <= min_loss_val:
-            min_loss_val = epoch_loss
-            best_model_name = config.checkpoint[:-4] + '-best_epoch{}_loss{}.pth'.format(epoch, round(epoch_loss*100))
-            torch.save({
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'lr_scheduler': lr_scheduler.state_dict(),
-                'epoch': epoch,
-            }, join(os.getcwd(), save_dir, best_model_name))
-
-        if (epoch + 1) % 5 == 0:
-            model_name = config.checkpoint[:-4] + '-epoch{}_loss{}.pth'.format(epoch, round(epoch_loss*100))
-            torch.save({
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'lr_scheduler': lr_scheduler.state_dict(),
-                'epoch': epoch,
-            }, join(os.getcwd(), save_dir, model_name))
-
         validation_loss = evaluate(model, criterion, data_loader_val, device)
         print(f"Validation Loss: {validation_loss}")
+
+        if validation_loss <= min_loss_val:
+            min_loss_val = validation_loss
+            best_model_name = config.checkpoint[:-4] + '-best_epoch{}_loss{}.pth'.format(epoch, round(validation_loss*100))
+            torch.save({
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'lr_scheduler': lr_scheduler.state_dict(),
+                'epoch': epoch,
+            }, join(save_dir, best_model_name))
+        elif (epoch + 1) % 5 == 0:
+            model_name = config.checkpoint[:-4] + '-epoch{}_loss{}.pth'.format(epoch, round(validation_loss*100))
+            torch.save({
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'lr_scheduler': lr_scheduler.state_dict(),
+                'epoch': epoch,
+            }, join(save_dir, model_name))
         print()
 
 
