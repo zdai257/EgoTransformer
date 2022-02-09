@@ -91,6 +91,7 @@ def main(config):
 
     min_loss_val = 100
     save_dir = 'epoch_checks'
+
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
