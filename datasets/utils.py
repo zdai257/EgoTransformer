@@ -15,7 +15,7 @@ def read_json(file_name):
 def nested_tensor_from_tensor_list(tensor_list: List[Tensor]):
     # TODO make this more general
     if tensor_list[0].ndim == 3:
-        # TODO make it support different-sized images
+        # TODO make it support different-sized Split1
         max_size = [3, MAX_DIM, MAX_DIM]
         # min_size = tuple(min(s) for s in zip(*[img.shape for img in tensor_list]))
         batch_shape = [len(tensor_list)] + max_size

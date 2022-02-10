@@ -141,6 +141,7 @@ dmypy.json
 .idea/
 Data/
 images/
+static/
 WordEmbeddings/
 *.pth
 *.pickle

@@ -233,7 +233,7 @@ class MSVDCaption(Dataset):
             #image = nested_tensor_from_tensor_list(image.unsqueeze(0))
             images.append(image.unsqueeze(3))
 
-        #print(images[0].shape, images[-1].shape)
+        #print(Split1[0].shape, Split1[-1].shape)
         tensor_images = torch.cat(images, dim=3)
         #print("After cat shape = ", tensor_images.shape)
         nest_images = nested_tensor_from_tensor_list(tensor_images.unsqueeze(0))
