@@ -1,3 +1,5 @@
+import json
+
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
@@ -249,6 +251,40 @@ class MSVDCaption(Dataset):
         return nest_images.tensors.squeeze(0), nest_images.mask.squeeze(0), caption, cap_mask
 
 
+class EgoCaption(Dataset):
+    def __init__(self, root, ann, max_length, limit, transform=train_transform, mode='training'):
+        super().__init__()
+        self.root = root
+        self.transform = transform
+        # self.annot is a list of tuples [('imgname.jpg', split_index, 'I am doing.')...]
+        if mode == 'validation':
+            self.annot = ann
+        if mode == 'training':
+            self.annot = ann
+
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=True)
+        self.max_length = max_length + 1
+
+    def __len__(self):
+        return len(self.annot)
+
+    def __getitem__(self, idx):
+        image_id, split_index, caption = self.annot[idx]
+        image = Image.open(os.path.join(self.root, 'static', 'Split' + split_index, image_id))
+
+        if self.transform:
+            image = self.transform(image)
+        image = nested_tensor_from_tensor_list(image.unsqueeze(0))
+
+        caption_encoded = self.tokenizer.encode_plus(
+            caption, max_length=self.max_length, pad_to_max_length=True, return_attention_mask=True, return_token_type_ids=False, truncation=True)
+        # caption_encoded is a dict of {'input_ids': <a list of vocab indexes>, 'attention_mask': [1, 1, 1, 0 ,0 ...]
+        caption = np.array(caption_encoded['input_ids'])
+        cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
+
+        return image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask
+
+
 class CocoCaption(Dataset):
     def __init__(self, root, ann, max_length, limit, transform=train_transform, mode='training'):
         super().__init__()
@@ -353,3 +389,24 @@ def build_dataset_msvd(config, mode='training'):
     else:
         raise NotImplementedError(f"{mode} not supported")
 
+
+def build_dataset_egocap(config, mode='training'):
+    egocap_data_dir = "/Users/zhuangzhuangdai/repos/EgoCapSurvey"  #config.egocap_data_dir
+    egocap_ana_file = join(egocap_data_dir, 'doc', 'analyzed_annatations.json')
+
+    #TODO: train/test split
+    with open(egocap_ana_file, 'r') as f:
+        egocap_ann = json.load(f)
+    egocap_anns = []
+    for key, val in egocap_ann.items():
+        for cap in val['captions']:
+            egocap_anns.append((key, str(val['SplitIndex']).zfill(2), cap))
+
+    if mode == 'training':
+        data = EgoCaption(egocap_data_dir, egocap_anns, max_length=config.max_position_embeddings,
+                          limit=config.limit, transform=val_transform, mode=mode)
+        return data
+    elif mode == 'validation':
+        return None
+    else:
+        raise NotImplementedError(f"{mode} not supported")
