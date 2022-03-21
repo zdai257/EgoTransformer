@@ -24,14 +24,14 @@ def main(config):
     np.random.seed(seed)
 
     ### Select Model ###
-    #model, _ = caption.build_model(config)
+    model, criterion = caption.build_model(config)
     # New Model
-    model, _ = caption.build_model_bs(config)
+    #model, _ = caption.build_model_bs(config)
     #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
     #exit()
+
     # Multi-GPU
     #model = torch.nn.DataParallel(model)
-
     model.to(device)
 
     n_parameters = sum(p.numel()
@@ -84,7 +84,8 @@ def main(config):
 
     # Redefine criterion
     print("Ignored index: ", dataset_val.tokenizer.convert_tokens_to_ids(dataset_val.tokenizer._pad_token))
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+    # Define criterion in main
+    #criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
 
     # Free GPU memory n allow growth
     torch.cuda.empty_cache()
@@ -138,5 +139,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config2()
+    config = Config()
     main(config)
