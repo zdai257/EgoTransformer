@@ -26,7 +26,7 @@ image_path = args.path
 version = args.v
 checkpoint_path = args.checkpoint
 
-config = Config2()
+config = Config()
 
 if version == 'v1':
     model = torch.hub.load('saahiluppal/catr', 'v1', pretrained=True)
@@ -69,6 +69,8 @@ end_token = tokenizer.convert_tokens_to_ids(tokenizer._sep_token)
 print("Total Vocal = ", tokenizer.vocab_size)
 print("Start Token: {}; End Token: {}; Padding: {}".format(tokenizer._cls_token, tokenizer._sep_token,
                                                            tokenizer._pad_token))
+#print(tokenizer.get_vocab())
+#exit()
 
 image = Image.open(image_path)
 # Transpose with respect to EXIF data

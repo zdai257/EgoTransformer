@@ -25,14 +25,17 @@ def main(config):
 
     ### Select Model ###
     #model, _ = caption.build_model(config)
-    # New Model
-    model, _ = caption.build_model_bs(config)
+    # Ego Model
+    model, _ = caption.build_model_ego(config)
+
+    # Video Model
+    #model, _ = caption.build_model_bs(config)
     #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
     #exit()
     # Multi-GPU
     #model = torch.nn.DataParallel(model)
 
-    model.to(device)
+    #model.to(device)
 
     n_parameters = sum(p.numel()
                        for p in model.parameters() if p.requires_grad)
@@ -49,7 +52,9 @@ def main(config):
     optimizer = torch.optim.AdamW(
         param_dicts, lr=config.lr, weight_decay=config.weight_decay)
     ### lr_scheduler with / without warmup ###
-    if config.warmup_steps == 0:
+    if not hasattr(config, 'warmup_steps'):
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
+    elif config.warmup_steps == 0:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
     else:
         #lr_scheduler = get_cosine_schedule_with_warmup(
@@ -62,6 +67,9 @@ def main(config):
     if config.modality == 'image':
         dataset_train = coco.build_dataset(config, mode='training')
         dataset_val = coco.build_dataset(config, mode='validation')
+    elif config.modality == 'ego':
+        dataset_train = coco.build_dataset_egocap(config, mode='training')
+        dataset_val = coco.build_dataset_egocap(config, mode='validation')
     elif config.modality == 'video':
         dataset_train = coco.build_dataset_msvd(config, mode='training')
         dataset_val = coco.build_dataset_msvd(config, mode='validation')
@@ -85,6 +93,9 @@ def main(config):
     # Redefine criterion
     print("Ignored index: ", dataset_val.tokenizer.convert_tokens_to_ids(dataset_val.tokenizer._pad_token))
     criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+
+    #print(next(iter(dataset_train)))
+    #exit()
 
     # Free GPU memory n allow growth
     torch.cuda.empty_cache()
@@ -138,5 +149,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config2()
+    config = ConfigEgo()
     main(config)

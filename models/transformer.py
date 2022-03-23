@@ -42,10 +42,41 @@ class Transformer(nn.Module):
         # flatten NxCxHxW to HWxNxC
         bs, c, h, w = src.shape
         src = src.flatten(2).permute(2, 0, 1)
-        pos_embed = pos_embed.flatten(2).permute(2, 0, 1)
+        pos_embed = pos_embed.flatten(2).permute(2, 0, 1)  # 'pos_embed' is only for Encoder
         mask = mask.flatten(1)
 
         tgt = self.embeddings(tgt).permute(1, 0, 2)
+        query_embed = self.embeddings.position_embeddings.weight.unsqueeze(1)
+        query_embed = query_embed.repeat(1, bs, 1)
+
+        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
+        hs = self.decoder(tgt, memory, memory_key_padding_mask=mask, tgt_key_padding_mask=tgt_mask,
+                          pos=pos_embed, query_pos=query_embed,
+                          tgt_mask=generate_square_subsequent_mask(len(tgt)).to(tgt.device))
+
+        return hs
+
+
+class EgoTransformer(Transformer):
+
+    def __init__(self, config, d_model=512, nhead=8, num_encoder_layers=6,
+                 num_decoder_layers=6, dim_feedforward=2048, dropout=0.1,
+                 activation="relu", normalize_before=False,
+                 return_intermediate_dec=False):
+        super().__init__(config, d_model, nhead, num_encoder_layers,
+                 num_decoder_layers, dim_feedforward, dropout,
+                 activation, normalize_before, return_intermediate_dec)
+
+        self.embeddings = EgoDecoderEmbeddings(config)
+
+    def forward(self, src, mask, pos_embed, tgt, tgt_mask, tag_token):
+        # flatten NxCxHxW to HWxNxC
+        bs, c, h, w = src.shape
+        src = src.flatten(2).permute(2, 0, 1)
+        pos_embed = pos_embed.flatten(2).permute(2, 0, 1)  # 'pos_embed' is only for Encoder
+        mask = mask.flatten(1)
+
+        tgt = self.embeddings(tgt, tag_token).permute(1, 0, 2)
         query_embed = self.embeddings.position_embeddings.weight.unsqueeze(1)
         query_embed = query_embed.repeat(1, bs, 1)
 
@@ -364,18 +395,64 @@ class DecoderEmbeddings(nn.Module):
         self.dropout = nn.Dropout(config.dropout)
 
     def forward(self, x):
+        # x:(B, seq')
         input_shape = x.size()
         seq_length = input_shape[1]
         device = x.device
 
         position_ids = torch.arange(
             seq_length, dtype=torch.long, device=device)
+        # (1, seq') of "0, 1, 2, ... 127" -> position_ids:(B, seq')
         position_ids = position_ids.unsqueeze(0).expand(input_shape)
 
+        # x ==> input_embeds:(B, seq', d_m)
         input_embeds = self.word_embeddings(x)
+        # position_ids => position_embed:(B, seq', d_m)
         position_embeds = self.position_embeddings(position_ids)
 
         embeddings = input_embeds + position_embeds
+        embeddings = self.LayerNorm(embeddings)
+        embeddings = self.dropout(embeddings)
+
+        return embeddings
+
+
+class EgoDecoderEmbeddings(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.word_embeddings = nn.Embedding(
+            config.vocab_size, config.hidden_dim, padding_idx=config.pad_token_id)
+        self.position_embeddings = nn.Embedding(
+            config.max_position_embeddings, config.hidden_dim
+        )
+        # Learnable context_embed!?
+        self.context_embeddings = nn.Embedding(
+            9, config.hidden_dim
+        )
+        self.LayerNorm = torch.nn.LayerNorm(
+            config.hidden_dim, eps=config.layer_norm_eps)
+        self.dropout = nn.Dropout(config.dropout)
+
+    def forward(self, x, tag_token):
+        # x:(B, seq')
+        input_shape = x.size()
+        seq_length = input_shape[1]
+        device = x.device
+
+        # tag_token:(B,) => context_embeds:(B, seq', d_m)
+        context_embeds = self.context_embeddings(tag_token.unsqueeze(1).expand(input_shape))
+
+        position_ids = torch.arange(
+            seq_length, dtype=torch.long, device=device)
+        # (1, seq') of "0, 1, 2, ... 127" -> position_ids:(B, seq')
+        position_ids = position_ids.unsqueeze(0).expand(input_shape)
+
+        # x ==> input_embeds:(B, seq', d_m)
+        input_embeds = self.word_embeddings(x)
+        # position_ids => position_embed:(B, seq', d_m)
+        position_embeds = self.position_embeddings(position_ids)
+
+        embeddings = input_embeds + position_embeds + context_embeds
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
 
@@ -408,14 +485,28 @@ def generate_square_subsequent_mask(sz):
 
 
 def build_transformer(config):
-    return Transformer(
-        config,
-        d_model=config.hidden_dim,
-        dropout=config.dropout,
-        nhead=config.nheads,
-        dim_feedforward=config.dim_feedforward,
-        num_encoder_layers=config.enc_layers,
-        num_decoder_layers=config.dec_layers,
-        normalize_before=config.pre_norm,
-        return_intermediate_dec=False,
-    )
+    if config.modality == 'ego':
+        return EgoTransformer(
+            config,
+            d_model=config.hidden_dim,
+            dropout=config.dropout,
+            nhead=config.nheads,
+            dim_feedforward=config.dim_feedforward,
+            num_encoder_layers=config.enc_layers,
+            num_decoder_layers=config.dec_layers,
+            normalize_before=config.pre_norm,
+            return_intermediate_dec=False,
+        )
+    else:
+        return Transformer(
+            config,
+            d_model=config.hidden_dim,
+            dropout=config.dropout,
+            nhead=config.nheads,
+            dim_feedforward=config.dim_feedforward,
+            num_encoder_layers=config.enc_layers,
+            num_decoder_layers=config.dec_layers,
+            normalize_before=config.pre_norm,
+            return_intermediate_dec=False,
+        )
+

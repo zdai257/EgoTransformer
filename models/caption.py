@@ -360,6 +360,15 @@ def build_model(config):
 
     return model, criterion
 
+def build_model_ego(config):
+    backbone = build_backbone(config)
+    transformer = build_transformer(config)
+
+    model = Caption(backbone, transformer, config.hidden_dim, config.vocab_size)
+    criterion = torch.nn.CrossEntropyLoss()
+
+    return model, criterion
+
 def build_model_bs(config):
     backbone = build_backbone(config)
 
