@@ -24,23 +24,27 @@ def main(config):
     np.random.seed(seed)
 
     ### Select Model ###
-    #model, _ = caption.build_model(config)
-    # Ego Model
-    model, _ = caption.build_model_ego(config)
-
-    # Video Model
-    #model, _ = caption.build_model_bs(config)
-    #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
-    #exit()
+    if config.modality == 'image':
+        # Original CATR
+        model, criterion = caption.build_model(config)
+    elif config.modality == 'ego':
+        # Ego Model
+        model, criterion = caption.build_model_ego(config)
+    elif config.modality == 'video':
+        # Video Model
+        model, criterion = caption.build_model_bs(config)
+        #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
+        #exit()
     # Multi-GPU
     #model = torch.nn.DataParallel(model)
 
-    #model.to(device)
+    model.to(device)
 
     n_parameters = sum(p.numel()
                        for p in model.parameters() if p.requires_grad)
     print(f"Number of params: {n_parameters}")
 
+    # Assign different LR to backbone / transformer networks
     param_dicts = [
         {"params": [p for n, p in model.named_parameters(
         ) if "backbone" not in n and p.requires_grad]},
@@ -92,7 +96,8 @@ def main(config):
 
     # Redefine criterion
     print("Ignored index: ", dataset_val.tokenizer.convert_tokens_to_ids(dataset_val.tokenizer._pad_token))
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+    # Define criterion in main?
+    #criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
 
     #print(next(iter(dataset_train)))
     #exit()
@@ -106,6 +111,7 @@ def main(config):
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
+    # Load from existing model
     '''
     if os.path.exists(config.checkpoint):
         print("Loading Checkpoint...")
@@ -116,16 +122,35 @@ def main(config):
         config.start_epoch = checkpoint['epoch'] + 1
         print("Current checkpoint epoch = %d" % checkpoint['epoch'])
     '''
+    if config.IsFinetune:
+        # Load state_dict of pretrained model
+        if os.path.exists(config.pretrain_checkpoint):
+            print("Loading Checkpoint...")
+            pretrain_checkpoint = torch.load(config.pretrain_checkpoint, map_location='cpu')
+            pretrained_dict = pretrain_checkpoint['model']
+            print("Current pretrain_checkpoint epoch = %d" % pretrain_checkpoint['epoch'])
+        else:
+            raise FileNotFoundError("Pretrain_checkpoint does not exist!")
+
+        model_dict = model.state_dict()
+        # 1. filter out unnecessary keys
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        layers_in_new_model = {k: v for k, v in model_dict.items() if k not in pretrained_dict}
+        print("New layers in EgoTransformer: ", layers_in_new_model.keys())
+        # 2. overwrite entries in the existing state dict
+        model_dict.update(pretrained_dict)
+        # 3. load the new state dict
+        model.load_state_dict(model_dict)
 
     print("Start Training..")
     for epoch in range(config.start_epoch, config.epochs):
         print(f"Epoch: {epoch}")
-        epoch_loss = train_one_epoch(
+        epoch_loss = train_one_epoch(config,
             model, criterion, data_loader_train, optimizer, device, epoch, config.clip_max_norm)
         lr_scheduler.step()
         print(f"Training Loss: {epoch_loss}")
 
-        validation_loss = evaluate(model, criterion, data_loader_val, device)
+        validation_loss = evaluate(config, model, criterion, data_loader_val, device)
         print(f"Validation Loss: {validation_loss}")
 
         if validation_loss <= min_loss_val:

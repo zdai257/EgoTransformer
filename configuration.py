@@ -49,13 +49,13 @@ class Config(object):
 class ConfigEgo(object):
     def __init__(self):
         # Learning Rates
-        self.lr_backbone = 1e-5
-        self.lr = 1e-4
+        self.lr_backbone = 1e-6
+        self.lr = 1e-5
 
         # Epochs
         self.epochs = 30
         self.lr_drop = 20
-        self.start_epoch = 0
+        self.start_epoch = 12  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
 
         # Backbone
@@ -66,9 +66,9 @@ class ConfigEgo(object):
         # Basic
         self.device = 'cuda'
         self.seed = 42
-        self.batch_size = 32
+        self.batch_size = 8
         self.num_workers = 8
-        self.checkpoint = './checkpoint.pth'
+        self.checkpoint = './finetuneEgoTrans.pth'
         self.clip_max_norm = 0.1
 
         # Transformer
@@ -91,6 +91,8 @@ class ConfigEgo(object):
 
         # TYPE of dataset
         self.modality = 'ego'
+        self.IsFinetune = True
+        self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
         self.egocap_data_dir = "/Users/zhuangzhuangdai/repos/EgoCapSurvey"
         self.egocap_ana_filename = "analyzed_annatations_ref.json"

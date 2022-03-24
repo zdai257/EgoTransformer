@@ -31,6 +31,30 @@ class Caption(nn.Module):
         return out
 
 
+class EgoCaption(nn.Module):
+    def __init__(self, backbone, transformer, hidden_dim, vocab_size):
+        super().__init__()
+        self.backbone = backbone
+        self.input_proj = nn.Conv2d(
+            backbone.num_channels, hidden_dim, kernel_size=1)
+        self.transformer = transformer
+        self.mlp = MLP(hidden_dim, 512, vocab_size, 3)
+
+    def forward(self, samples, target, target_mask, tag_token):
+        if not isinstance(samples, NestedTensor):
+            samples = nested_tensor_from_tensor_list(samples)
+
+        features, pos = self.backbone(samples)
+        src, mask = features[-1].decompose()
+
+        assert mask is not None
+
+        hs = self.transformer(self.input_proj(src), mask,
+                              pos[-1], target, target_mask, tag_token)
+        out = self.mlp(hs.permute(1, 0, 2))
+        return out
+
+
 # New Model
 class CaptionWithEncoderDecoder(nn.Module):
     def __init__(self, encoder, decoder, max_position_embeddings, start_token=101, end_token=102, vocab_size=30522):
@@ -364,7 +388,7 @@ def build_model_ego(config):
     backbone = build_backbone(config)
     transformer = build_transformer(config)
 
-    model = Caption(backbone, transformer, config.hidden_dim, config.vocab_size)
+    model = EgoCaption(backbone, transformer, config.hidden_dim, config.vocab_size)
     criterion = torch.nn.CrossEntropyLoss()
 
     return model, criterion

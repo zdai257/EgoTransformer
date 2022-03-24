@@ -8,7 +8,7 @@ import tqdm
 from models import utils
 
 
-def train_one_epoch(model, criterion, data_loader,
+def train_one_epoch(config, model, criterion, data_loader,
                     optimizer, device, epoch, max_norm):
     model.train()
     criterion.train()
@@ -17,12 +17,18 @@ def train_one_epoch(model, criterion, data_loader,
     total = len(data_loader)
 
     with tqdm.tqdm(total=total) as pbar:
-        for images, masks, caps, cap_masks in data_loader:
+        for tuples in data_loader:
+            images, masks, caps, cap_masks = tuples[0], tuples[1], tuples[2], tuples[3]
             samples = utils.NestedTensor(images, masks).to(device)
             caps = caps.to(device)
             cap_masks = cap_masks.to(device)
 
-            outputs = model(samples, caps[:, :-1], cap_masks[:, :-1])
+            if config.modality == 'ego':
+                tag_token = tuples[4]
+                tag_token = tag_token.to(device)
+                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1], tag_token)
+            else:
+                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1])
             loss = criterion(outputs.permute(0, 2, 1), caps[:, 1:])
             loss_value = loss.item()
             epoch_loss += loss_value
@@ -42,7 +48,7 @@ def train_one_epoch(model, criterion, data_loader,
     return epoch_loss / total
 
 @torch.no_grad()
-def evaluate(model, criterion, data_loader, device):
+def evaluate(config, model, criterion, data_loader, device):
     model.eval()
     criterion.eval()
 
@@ -50,12 +56,18 @@ def evaluate(model, criterion, data_loader, device):
     total = len(data_loader)
 
     with tqdm.tqdm(total=total) as pbar:
-        for images, masks, caps, cap_masks in data_loader:
+        for tuples in data_loader:
+            images, masks, caps, cap_masks = tuples[0], tuples[1], tuples[2], tuples[3]
             samples = utils.NestedTensor(images, masks).to(device)
             caps = caps.to(device)
             cap_masks = cap_masks.to(device)
 
-            outputs = model(samples, caps[:, :-1], cap_masks[:, :-1])
+            if config.modality == 'ego':
+                tag_token = tuples[4]
+                tag_token = tag_token.to(device)
+                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1], tag_token)
+            else:
+                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1])
             loss = criterion(outputs.permute(0, 2, 1), caps[:, 1:])
 
             validation_loss += loss.item()
