@@ -24,9 +24,10 @@ def main(config):
     np.random.seed(seed)
 
     ### Select Model ###
-    #model, _ = caption.build_model(config)
+    # Original CATR
+    model, criterion = caption.build_model(config)
     # New Model
-    model, _ = caption.build_model_bs(config)
+    #model, _ = caption.build_model_bs(config)
     #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
     #exit()
     # Multi-GPU
@@ -49,7 +50,9 @@ def main(config):
     optimizer = torch.optim.AdamW(
         param_dicts, lr=config.lr, weight_decay=config.weight_decay)
     ### lr_scheduler with / without warmup ###
-    if config.warmup_steps == 0:
+    if not hasattr(config, 'warmup_steps'):
+        lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
+    elif config.warmup_steps == 0:
         lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, config.lr_drop)
     else:
         #lr_scheduler = get_cosine_schedule_with_warmup(
@@ -62,6 +65,9 @@ def main(config):
     if config.modality == 'image':
         dataset_train = coco.build_dataset(config, mode='training')
         dataset_val = coco.build_dataset(config, mode='validation')
+    elif config.modality == 'ego':
+        dataset_train = coco.build_dataset_egocap(config, mode='training')
+        dataset_val = coco.build_dataset_egocap(config, mode='validation')
     elif config.modality == 'video':
         dataset_train = coco.build_dataset_msvd(config, mode='training')
         dataset_val = coco.build_dataset_msvd(config, mode='validation')
@@ -84,7 +90,8 @@ def main(config):
 
     # Redefine criterion
     print("Ignored index: ", dataset_val.tokenizer.convert_tokens_to_ids(dataset_val.tokenizer._pad_token))
-    criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+    # Define criterion in main?
+    #criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
 
     # Free GPU memory n allow growth
     torch.cuda.empty_cache()
@@ -95,6 +102,7 @@ def main(config):
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
+    # Load from existing model
     '''
     if os.path.exists(config.checkpoint):
         print("Loading Checkpoint...")
@@ -105,6 +113,23 @@ def main(config):
         config.start_epoch = checkpoint['epoch'] + 1
         print("Current checkpoint epoch = %d" % checkpoint['epoch'])
     '''
+    if config.IsFinetune:
+        # Load state_dict of pretrained model
+        if os.path.exists(config.pretrain_checkpoint):
+            print("Loading Checkpoint...")
+            pretrain_checkpoint = torch.load(config.pretrain_checkpoint, map_location='cpu')
+            pretrained_dict = pretrain_checkpoint['model']
+            print("Current pretrain_checkpoint epoch = %d" % pretrain_checkpoint['epoch'])
+        else:
+            raise FileNotFoundError("Pretrain_checkpoint does not exist!")
+
+        model_dict = model.state_dict()
+        # 1. filter out unnecessary keys
+        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        # 2. overwrite entries in the existing state dict
+        model_dict.update(pretrained_dict)
+        # 3. load the new state dict
+        model.load_state_dict(model_dict)
 
     print("Start Training..")
     for epoch in range(config.start_epoch, config.epochs):
@@ -138,5 +163,5 @@ def main(config):
 
 
 if __name__ == "__main__":
-    config = Config2()
+    config = ConfigEgo()
     main(config)
