@@ -64,11 +64,11 @@ class ConfigEgo(object):
         self.dilation = True
 
         # Basic
-        self.device = 'cuda'
+        self.device = 'cpu'
         self.seed = 42
-        self.batch_size = 8
-        self.num_workers = 8
-        self.checkpoint = './finetune.pth'
+        self.batch_size = 2
+        self.num_workers = 0
+        self.checkpoint = './finetuneContextFuse.pth'
         self.clip_max_norm = 0.1
 
         # Transformer

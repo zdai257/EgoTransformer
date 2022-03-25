@@ -262,8 +262,8 @@ class EgoCaption(Dataset):
         if mode == 'training':
             self.annot = ann
 
-        self.where_dict = {'indoor': 0, 'outdoor': 1, 'na': 2}
-        self.when_dict = {'daytime': 0, 'night': 1, 'na': 2}
+        self.where_dict = {'indoor': "in indoor inside room", 'outdoor': "out outside outdoor outdoors", 'na': ""}
+        self.when_dict = {'daytime': "day daytime sunny midday", 'night': "night nighttime midnight evening", 'na': ""}
 
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=True)
         self.max_length = max_length + 1
@@ -285,10 +285,17 @@ class EgoCaption(Dataset):
         caption = np.array(caption_encoded['input_ids'])
         cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
 
-        # Tags: not popping in Data Loader!
-        tag_token = len(self.where_dict) * self.where_dict[tags[0]] + self.when_dict[tags[1]]
+        # Tags: popping in Decoder
+        tags_encoded = self.tokenizer.encode_plus(self.where_dict[tags[0]] + ' ' + self.when_dict[tags[1]],
+                                                  max_length=10, pad_to_max_length=True, return_attention_mask=True,
+                                                  return_token_type_ids=False, truncation=True)
+        tag_token = np.array(tags_encoded['input_ids'])
+        tag_mask = (1 - np.array(tags_encoded['attention_mask'])).astype(bool)
+        # Disable attention to [CLS] or [SEP]
+        tag_mask[0] = True
+        tag_mask[-1] = True
 
-        return image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask
+        return image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask, tag_token, tag_mask
 
 
 class CocoCaption(Dataset):

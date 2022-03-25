@@ -24,14 +24,19 @@ def main(config):
     np.random.seed(seed)
 
     ### Select Model ###
-    # Original CATR
-    model, criterion = caption.build_model(config)
-    # New Model
-    #model, _ = caption.build_model_bs(config)
-    #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
-    #exit()
+    if config.modality == 'image':
+        # Original CATR
+        model, criterion = caption.build_model(config)
+    elif config.modality == 'ego':
+        # Ego Model
+        model, criterion = caption.build_model_ego(config)
+    elif config.modality == 'video':
+        # Video Model
+        model, criterion = caption.build_model_bs(config)
+        # lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
+        # exit()
     # Multi-GPU
-    #model = torch.nn.DataParallel(model)
+    # model = torch.nn.DataParallel(model)
 
     model.to(device)
 
@@ -126,6 +131,8 @@ def main(config):
         model_dict = model.state_dict()
         # 1. filter out unnecessary keys
         pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        layers_in_new_model = {k: v for k, v in model_dict.items() if k not in pretrained_dict}
+        print("New layers in EgoTransformer: ", layers_in_new_model.keys())
         # 2. overwrite entries in the existing state dict
         model_dict.update(pretrained_dict)
         # 3. load the new state dict
@@ -134,12 +141,12 @@ def main(config):
     print("Start Training..")
     for epoch in range(config.start_epoch, config.epochs):
         print(f"Epoch: {epoch}")
-        epoch_loss = train_one_epoch(
+        epoch_loss = train_one_epoch(config,
             model, criterion, data_loader_train, optimizer, device, epoch, config.clip_max_norm)
         lr_scheduler.step()
         print(f"Training Loss: {epoch_loss}")
 
-        validation_loss = evaluate(model, criterion, data_loader_val, device)
+        validation_loss = evaluate(config, model, criterion, data_loader_val, device)
         print(f"Validation Loss: {validation_loss}")
 
         if validation_loss <= min_loss_val:
