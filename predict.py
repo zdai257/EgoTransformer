@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from models import caption
 from datasets import coco, utils
 from configuration import *
-
+import numpy as np
 from pycocoevalcap.bleu.bleu import Bleu, BleuScorer
 from pycocoevalcap.meteor.meteor import Meteor, METEOR_JAR
 from pycocoevalcap.rouge.rouge import Rouge
@@ -44,8 +44,15 @@ else:
       print("Found checkpoint! Loading!")
 
       ### Select Model ###
-      model, _ = caption.build_model(config)
-      #model, _ = caption.build_model_bs(config)
+      if config.modality == 'image':
+          # Original CATR
+          model, criterion = caption.build_model(config)
+      elif config.modality == 'ego':
+          # Ego Model
+          model, criterion = caption.build_model_ego(config)
+      elif config.modality == 'video':
+          # Video Model
+          model, criterion = caption.build_model_bs(config)
 
       print("Loading Checkpoint...")
       checkpoint = torch.load(checkpoint_path, map_location='cpu')
@@ -117,6 +124,25 @@ def create_caption_and_mask(start_token, max_length):
 cap, cap_mask = create_caption_and_mask(
     start_token, config.max_position_embeddings)
 
+# Get tag_token, tag_mask
+def create_tag_token_and_mask():
+    tags = ('indoor', 'daytime')
+    where_dict = {'indoor': "in indoor inside room", 'outdoor': "out outside outdoor outdoors", 'na': ""}
+    when_dict = {'daytime': "day daytime sunny midday", 'night': "night nighttime midnight evening", 'na': ""}
+
+    tags_encoded = tokenizer.encode_plus(where_dict[tags[0]] + ' ' + when_dict[tags[1]],
+                                         max_length=10, pad_to_max_length=True, return_attention_mask=True,
+                                         return_token_type_ids=False, truncation=True)
+    tag_token_template = torch.from_numpy(np.array(tags_encoded['input_ids']))
+    tag_mask_template = torch.from_numpy((1 - np.array(tags_encoded['attention_mask'])).astype(bool))
+    tag_mask_template[0] = True
+    tag_mask_template[-1] = True
+
+    return tag_token_template.unsqueeze(0), tag_mask_template.unsqueeze(0)
+
+
+tag_token, tag_mask = create_tag_token_and_mask()
+
 
 @torch.no_grad()
 def evaluate():
@@ -125,7 +151,10 @@ def evaluate():
 
 
     for i in range(config.max_position_embeddings - 1):
-        predictions = model(sample, cap, cap_mask)
+        if config.modality == 'ego':
+            predictions = model(sample, cap, cap_mask, tag_token, tag_mask)
+        else:
+            predictions = model(sample, cap, cap_mask)
         predictions = predictions[:, i, :]
         predicted_id = torch.argmax(predictions, axis=-1)
 

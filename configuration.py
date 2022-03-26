@@ -64,10 +64,10 @@ class ConfigEgo(object):
         self.dilation = True
 
         # Basic
-        self.device = 'cpu'
+        self.device = 'cuda'
         self.seed = 42
-        self.batch_size = 2
-        self.num_workers = 0
+        self.batch_size = 8
+        self.num_workers = 8
         self.checkpoint = './finetuneContextFuse.pth'
         self.clip_max_norm = 0.1
 
@@ -90,14 +90,14 @@ class ConfigEgo(object):
         self.limit = -1
 
         # TYPE of dataset
-        self.modality = 'ego'
+        self.modality = 'image'
         self.IsFinetune = True
         self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
         self.egocap_data_dir = "/Users/zhuangzhuangdai/repos/EgoCapSurvey"
         self.egocap_ana_filename = "analyzed_annatations_ref.json"
-        self.train_splits = [4, 5, 6, 7, 8, 9, 10]
-        self.val_splits = [1, 2, 3]
+        self.train_splits = [3, 4, 5, 6, 7, 8, 9, 10]
+        self.val_splits = [1, 2]
         self.test_splits = []
 
 
