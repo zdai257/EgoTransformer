@@ -90,7 +90,7 @@ class ConfigEgo(object):
         self.limit = -1
 
         # TYPE of dataset
-        self.modality = 'image'
+        self.modality = 'ego'
         self.IsFinetune = True
         self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
