@@ -26,7 +26,7 @@ image_path = args.path
 version = args.v
 checkpoint_path = args.checkpoint
 
-config = Config2()
+config = ConfigEgo()
 
 if version == 'v1':
     model = torch.hub.load('saahiluppal/catr', 'v1', pretrained=True)
@@ -42,8 +42,10 @@ else:
       if not os.path.exists(checkpoint_path):
         raise NotImplementedError('Give valid checkpoint path')
       print("Found checkpoint! Loading!")
-      #model, _ = caption.build_model(config)
-      model, _ = caption.build_model_bs(config)
+
+      ### Select Model ###
+      model, _ = caption.build_model(config)
+      #model, _ = caption.build_model_bs(config)
 
       print("Loading Checkpoint...")
       checkpoint = torch.load(checkpoint_path, map_location='cpu')
@@ -121,7 +123,7 @@ def evaluate():
     model.eval()
     decoded_batch_beams = None
 
-    '''
+
     for i in range(config.max_position_embeddings - 1):
         predictions = model(sample, cap, cap_mask)
         predictions = predictions[:, i, :]
@@ -138,7 +140,7 @@ def evaluate():
     #out, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=None, diverse_m=3)
     ### Beam Search ###
     out, decoded_batch_beams = model.decode(sample, cap, cap_mask, beam_width=5, diverse_m=3)
-
+    '''
     return out, decoded_batch_beams
 
 output, outputs = evaluate()
