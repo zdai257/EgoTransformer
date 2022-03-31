@@ -96,8 +96,8 @@ class ConfigEgo(object):
         # Ego dataset
         self.egocap_data_dir = "/Users/zhuangzhuangdai/repos/EgoCapSurvey"
         self.egocap_ana_filename = "analyzed_annatations_ref.json"
-        self.train_splits = [3, 4, 5, 6, 7, 8, 9, 10]
-        self.val_splits = [1, 2]
+        self.train_splits = [4, 5, 6, 7, 8, 9, 10]
+        self.val_splits = [1, 2, 3]
         self.test_splits = []
 
 
