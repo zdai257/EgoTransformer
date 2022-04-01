@@ -44,16 +44,29 @@ def main(config):
                        for p in model.parameters() if p.requires_grad)
     print(f"Number of params: {n_parameters}")
 
-    param_dicts = [
-        {"params": [p for n, p in model.named_parameters() if ("backbone" not in n) and ("encoder" not in n) and p.requires_grad]},
-        {
-            "params": [p for n, p in model.named_parameters() if ("backbone" in n) or ("encoder" in n) and p.requires_grad],
-            "lr": config.lr_backbone,
-        },
-    ]
-    #print([n for n, p in model.named_parameters() if ("backbone" not in n) and ("encoder" not in n) and p.requires_grad])
-    #print([n for n, p in model.named_parameters() if ("backbone" in n) or ("encoder" in n) and p.requires_grad])
-    #exit()
+    if config.lr_encoder:
+        param_dicts = [
+            {"params": [p for n, p in model.named_parameters() if
+                        ("backbone" not in n) and ("encoder" not in n) and p.requires_grad]},
+            {
+                "params": [p for n, p in model.named_parameters() if
+                           ("backbone" in n) or ("encoder" in n) and p.requires_grad],
+                "lr": config.lr_backbone,
+            },
+        ]
+        # print([n for n, p in model.named_parameters() if ("backbone" not in n) and ("encoder" not in n) and p.requires_grad])
+        # print([n for n, p in model.named_parameters() if ("backbone" in n) or ("encoder" in n) and p.requires_grad])
+        # exit()
+    else:
+        param_dicts = [
+            {"params": [p for n, p in model.named_parameters() if
+                        "backbone" not in n and p.requires_grad]},
+            {
+                "params": [p for n, p in model.named_parameters() if
+                           "backbone" in n and p.requires_grad],
+                "lr": config.lr_backbone,
+            },
+        ]
 
     optimizer = torch.optim.AdamW(
         param_dicts, lr=config.lr, weight_decay=config.weight_decay)

@@ -50,6 +50,7 @@ class ConfigEgo(object):
     def __init__(self):
         # Learning Rates
         self.lr_backbone = 0  #1e-6
+        self.lr_encoder = True
         self.lr = 1e-5
 
         # Epochs
