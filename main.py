@@ -44,7 +44,7 @@ def main(config):
                        for p in model.parameters() if p.requires_grad)
     print(f"Number of params: {n_parameters}")
 
-    if config.lr_encoder:
+    if not config.lr_encoder:
         param_dicts = [
             {"params": [p for n, p in model.named_parameters() if
                         ("backbone" not in n) and ("encoder" not in n) and p.requires_grad]},
