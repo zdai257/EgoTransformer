@@ -411,8 +411,6 @@ def build_dataset_egocap(config, mode='training'):
                 egocap_train.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
             elif val['SplitIndex'] in config.val_splits:
                 egocap_val.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
-            else:
-                raise KeyError("Not in existing Splits!")
 
     if mode == 'training':
         data = EgoCaption(egocap_data_dir, egocap_train, max_length=config.max_position_embeddings,

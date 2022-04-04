@@ -55,7 +55,7 @@ class ConfigEgo(object):
         self.lr = 1e-5
 
         # Epochs
-        self.epochs = 70
+        self.epochs = 80
         self.lr_drop = 20
         self.start_epoch = 12  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
@@ -97,10 +97,10 @@ class ConfigEgo(object):
         self.pretrain_checkpoint = "./checkpoint_zd.pth"
         # Ego dataset
         self.egocap_data_dir = "/home/zdai/repos/EgoCapSurvey"
-        self.egocap_ana_filename = "analyzed_annatations_ref.json"
-        self.train_splits = [4, 5, 6, 7, 8, 9, 10]
-        self.val_splits = [1, 2, 3]
-        self.test_splits = []
+        self.egocap_ana_filename = "EgoCapAnnotations.json"  #"analyzed_annatations_ref.json"
+        self.train_splits = [4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21]
+        self.val_splits = [3, 12, 20]
+        self.test_splits = [1, 2]
 
 
 class Config2(object):
