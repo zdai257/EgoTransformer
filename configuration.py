@@ -94,10 +94,10 @@ class ConfigEgo(object):
         self.IsFinetune = True
         self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
-        self.egocap_data_dir = "/Users/zhuangzhuangdai/repos/EgoCapSurvey"
+        self.egocap_data_dir = "/home/zdai/repos/EgoCapSurvey"
         self.egocap_ana_filename = "EgoCapAnnotations.json"  #"analyzed_annatations_ref.json"
-        self.train_splits = [4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 21]
-        self.val_splits = [3, 12, 20]
+        self.train_splits = [4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21]
+        self.val_splits = [3, 10, 17]
         self.test_splits = [1, 2]
 
 
