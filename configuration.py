@@ -49,12 +49,12 @@ class Config(object):
 class ConfigEgo(object):
     def __init__(self):
         # Learning Rates
-        self.lr_backbone = 0  #1e-6
+        self.lr_backbone = 1e-6
         self.lr_encoder = True
-        self.lr = 3e-5
+        self.lr = 1e-5
 
         # Epochs
-        self.epochs = 120
+        self.epochs = 80
         self.lr_drop = 20
         self.start_epoch = 12  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
@@ -69,7 +69,7 @@ class ConfigEgo(object):
         self.seed = 42
         self.batch_size = 4
         self.num_workers = 8
-        self.checkpoint = './finetuneEgoTrans.pth'
+        self.checkpoint = './finetuneEgoTrans_backbonegrad.pth'
         self.clip_max_norm = 0.1
 
         # Transformer
