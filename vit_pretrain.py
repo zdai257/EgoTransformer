@@ -12,18 +12,22 @@ image = Image.open(join('images', 'IMG_9968.jpg'))
 image = ImageOps.exif_transpose(image)
 w, h = image.size
 print("PIL Image width: {}, height: {}".format(w, h))
+'''
 trans = transforms.Compose([
     transforms.Resize(224),
     transforms.ToTensor()
 ])
 sample = trans(image)
 sample = sample.unsqueeze(0)
+'''
 
 
-feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k")
-model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
+#feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k")
+feature_extractor = ViTFeatureExtractor.from_pretrained("./vit-feature_extractor")
+#model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
+model = ViTModel.from_pretrained("./vit-base-224")
 
-inputs = feature_extractor(sample, return_tensors="pt")
+inputs = feature_extractor(image, return_tensors="pt")
 
 with torch.no_grad():
     outputs = model(**inputs)
