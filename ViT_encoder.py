@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import torchvision
 from torch import nn
 from torchvision.models._utils import IntermediateLayerGetter
-
+from models import utils
 from models.caption import MLP
 from transformers import ViTModel, ViTConfig
 from transformers import ViTFeatureExtractor, ViTModel
@@ -11,17 +11,18 @@ from transformers import ViTFeatureExtractor, ViTModel
 
 class ViTEncoder(nn.Module):
 
-    def __init__(self, num_layers=3, hidden_dim=256):
+    def __init__(self, num_layers=2, hidden_dim=256):
         super().__init__()
         backbone = ViTModel.from_pretrained("./vit-base-224")
+        #print(backbone)
         for name, parameter in backbone.named_parameters():
             if 1:
                 parameter.requires_grad_(False)
 
-        return_layers = {'encoder': {'layer': '11'}}
+        return_layers = {'encoder': 'vit2'}
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
-        self.classifier = MLP(768, hidden_dim, 2, num_layers)
+        self.classifier = MLP(768, hidden_dim, 3, num_layers)
 
         self.where_head = nn.Sequential(
             nn.Dropout(p=0.2),
@@ -40,8 +41,15 @@ class ViTEncoder(nn.Module):
                 parameter.requires_grad_(True)
 
     def forward(self, x):
+        #print(self.body)
+
         xs = self.body(x)
-        xf = self.classifier(xs)
+        for name, x in xs.items():
+            xs = x.last_hidden_state
+            break
+        print(xs.shape)
+        xf = self.classifier(xs.permute(0, 2, 1))
+        print(xf.shape)
 
         return {
             'where': self.where_head(xf),
@@ -52,5 +60,6 @@ class ViTEncoder(nn.Module):
 
 def build_ViTEncoder(config):
     vit = ViTEncoder(hidden_dim=config.hidden_dim)
-    #print(vit)
+    #print(vit.body)
+
     return vit

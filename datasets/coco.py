@@ -314,6 +314,9 @@ class EgoCapViT(Dataset):
         self.when_dict = {'daytime': 0, 'night': 2, 'na': 1}
         self.whom_dict = {'human': 0, 'object': 2, 'na': 1}
 
+        self.where_dict_syn = {'indoor': "in indoor inside room", 'outdoor': "out outside outdoor outdoors", 'na': ""}
+        self.when_dict_syn = {'daytime': "day daytime sunny midday", 'night': "night nighttime midnight evening", 'na': ""}
+
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=True)
         self.max_length = max_length + 1
 
@@ -338,7 +341,7 @@ class EgoCapViT(Dataset):
         cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
 
         # Tags: popping in Decoder
-        tags_encoded = self.tokenizer.encode_plus(self.where_dict[tags[0]] + ' ' + self.when_dict[tags[1]],
+        tags_encoded = self.tokenizer.encode_plus(self.where_dict_syn[tags[0]] + ' ' + self.when_dict_syn[tags[1]],
                                                   max_length=10, pad_to_max_length=True, return_attention_mask=True,
                                                   return_token_type_ids=False, truncation=True)
         tag_token = np.array(tags_encoded['input_ids'])

@@ -42,9 +42,9 @@ def train_an_epoch(config, model, loss_func, data_loader,
         for i, tuples in enumerate(data_loader):
             inputs, contexts = tuples[6], tuples[7]
 
-            inputs = inputs.to(device)
+            inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
-            outputs = model(inputs)
+            outputs = model(inputs['pixel_values'])
 
             loss = criteria(loss_func, outputs, contexts, device)
             loss_value = loss.item()
@@ -74,9 +74,9 @@ def evaluate(config, model, loss_func, data_loader, device):
     with tqdm.tqdm(total=total) as pbar:
         for i, tuples in enumerate(data_loader):
             inputs, contexts = tuples[6], tuples[7]
-            inputs = inputs.to(device)
+            inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
-            outputs = model(inputs)
+            outputs = model(inputs['pixel_values'])
 
             loss = criteria(loss_func, outputs, contexts, device)
             loss_value = loss.item()
@@ -99,6 +99,9 @@ def main(config):
     np.random.seed(seed)
 
     model = ViT_encoder.build_ViTEncoder(config)
+    #for k,v in model.named_parameters():
+    #    print(k)
+    #print(list(model.parameters())[0].shape)
     model.to(device)
 
     n_parameters = sum(p.numel()

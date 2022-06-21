@@ -55,7 +55,7 @@ class ConfigEgo(object):
         # Epochs
         self.epochs = 30
         self.lr_drop = 20
-        self.start_epoch = 12  # Finetune starting from 11 + 1
+        self.start_epoch = 0  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
 
         # Backbone
@@ -94,7 +94,7 @@ class ConfigEgo(object):
         self.IsFinetune = True
         self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
-        self.egocap_data_dir = "/Users/zhuangzhuangdai/repos/EgoCapSurvey"
+        self.egocap_data_dir = "/home/zdai/repos/EgoCapSurvey"
         self.egocap_ana_filename = "analyzed_annatations_ref.json"
         self.train_splits = [4, 5, 6, 7, 8, 9, 10]
         self.val_splits = [1, 2, 3]
