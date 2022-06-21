@@ -1,9 +1,9 @@
 import json
-
 import torch
 from torch.utils.data import Dataset
 import torchvision.transforms.functional as TF
 import torchvision as tv
+from transformers import ViTModel, ViTConfig, ViTFeatureExtractor, ViTModel
 
 from PIL import Image
 import numpy as np
@@ -298,6 +298,61 @@ class EgoCaption(Dataset):
         return image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask, tag_token, tag_mask
 
 
+class EgoCapViT(Dataset):
+    def __init__(self, root, ann, max_length, limit, transform=train_transform, mode='training'):
+        super().__init__()
+        self.root = root
+        self.transform = transform
+        self.feature_extractor = ViTFeatureExtractor.from_pretrained("./vit-feature_extractor")
+        # self.annot is a list of tuples [('imgname.jpg', split_index, 'I am doing.', (<where>, <when>))...]
+        if mode == 'validation':
+            self.annot = ann
+        if mode == 'training':
+            self.annot = ann
+
+        self.where_dict = {'indoor': 0, 'outdoor': 2, 'na': 1}
+        self.when_dict = {'daytime': 0, 'night': 2, 'na': 1}
+        self.whom_dict = {'human': 0, 'object': 2, 'na': 1}
+
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=True)
+        self.max_length = max_length + 1
+
+    def __len__(self):
+        return len(self.annot)
+
+    def __getitem__(self, idx):
+        image_id, split_index, caption, tags = self.annot[idx]
+        image = Image.open(os.path.join(self.root, 'static', 'Split' + split_index, image_id))
+
+        # Context ViT input
+        inputs = self.feature_extractor(image, return_tensors="pt")
+        # Visual ViT input
+        if self.transform:
+            image = self.transform(image)
+        image = nested_tensor_from_tensor_list(image.unsqueeze(0))
+
+        caption_encoded = self.tokenizer.encode_plus(
+            caption, max_length=self.max_length, pad_to_max_length=True, return_attention_mask=True, return_token_type_ids=False, truncation=True)
+        # caption_encoded is a dict of {'input_ids': <a list of vocab indexes>, 'attention_mask': [1, 1, 1, 0 ,0 ...]
+        caption = np.array(caption_encoded['input_ids'])
+        cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
+
+        # Tags: popping in Decoder
+        tags_encoded = self.tokenizer.encode_plus(self.where_dict[tags[0]] + ' ' + self.when_dict[tags[1]],
+                                                  max_length=10, pad_to_max_length=True, return_attention_mask=True,
+                                                  return_token_type_ids=False, truncation=True)
+        tag_token = np.array(tags_encoded['input_ids'])
+        tag_mask = (1 - np.array(tags_encoded['attention_mask'])).astype(bool)
+        # Disable attention to [CLS] or [SEP]
+        tag_mask[0] = True
+        tag_mask[-1] = True
+
+        return (image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask, tag_token, tag_mask,
+                inputs, {'where': torch.tensor(self.where_dict[tags[0]]),
+                         'when': torch.tensor(self.when_dict[tags[1]]),
+                         'whom': torch.tensor(self.whom_dict[tags[2]])})
+
+
 class CocoCaption(Dataset):
     def __init__(self, root, ann, max_length, limit, transform=train_transform, mode='training'):
         super().__init__()
@@ -412,7 +467,7 @@ def build_dataset_egocap(config, mode='training'):
     egocap_anns, egocap_train, egocap_val, egocap_test = [], [], [], []
     for key, val in egocap_ann.items():
         for cap in val['captions']:
-            tags = (val['tag_stats']['where']['majority'], val['tag_stats']['when']['majority'])
+            tags = (val['tag_stats']['where']['majority'], val['tag_stats']['when']['majority'], val['tag_stats']['who']['majority'])
             #egocap_anns.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
             if val['SplitIndex'] in config.train_splits:
                 egocap_train.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
@@ -422,11 +477,11 @@ def build_dataset_egocap(config, mode='training'):
                 raise KeyError("Not in existing Splits!")
 
     if mode == 'training':
-        data = EgoCaption(egocap_data_dir, egocap_train, max_length=config.max_position_embeddings,
+        data = EgoCapViT(egocap_data_dir, egocap_train, max_length=config.max_position_embeddings,
                           limit=config.limit, transform=val_transform, mode=mode)
         return data
     elif mode == 'validation':
-        data = EgoCaption(egocap_data_dir, egocap_val, max_length=config.max_position_embeddings,
+        data = EgoCapViT(egocap_data_dir, egocap_val, max_length=config.max_position_embeddings,
                           limit=config.limit, transform=val_transform, mode=mode)
         return data
     else:
