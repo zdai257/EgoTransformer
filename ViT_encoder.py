@@ -31,7 +31,9 @@ class ViTEncoder(nn.Module):
         return_layers = {'vit': 'vit2'}
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
-        self.classifier = MLP(768 * 197, hidden_dim=2048, output_dim=hidden_dim, num_layers=num_layers)
+        self.classifier0 = nn.Linear(in_features=768, out_features=hidden_dim)
+
+        self.classifier = MLP(hidden_dim * 197, hidden_dim=512, output_dim=hidden_dim, num_layers=num_layers)
 
         self.where_head = nn.Sequential(
             nn.Dropout(p=0.2),
@@ -54,6 +56,8 @@ class ViTEncoder(nn.Module):
 
         xs = self.body(x)
         xs = xs[next(iter(xs))].last_hidden_state
+        print(xs.shape)
+        xs = F.relu(self.classifier0(xs))
         print(xs.shape)
         xf = self.classifier(xs.flatten(1))
         print(xf.shape)
