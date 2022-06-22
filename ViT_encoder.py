@@ -37,19 +37,22 @@ class ViTEncoder(nn.Module):
 
         self.where_head = nn.Sequential(
             nn.Dropout(p=0.2),
-            nn.Linear(in_features=hidden_dim, out_features=3)
+            nn.Linear(in_features=hidden_dim, out_features=3),
+            nn.Softmax(),
         )
         self.when_head = nn.Sequential(
             nn.Dropout(p=0.2),
-            nn.Linear(in_features=hidden_dim, out_features=3)
+            nn.Linear(in_features=hidden_dim, out_features=3),
+            nn.Softmax(),
         )
         self.whom_head = nn.Sequential(
             nn.Dropout(p=0.2),
-            nn.Linear(in_features=hidden_dim, out_features=3)
+            nn.Linear(in_features=hidden_dim, out_features=3),
+            nn.Softmax(),
         )
-        for name, parameter in self.classifier.named_parameters():
-            if 1:
-                parameter.requires_grad_(True)
+        #for name, parameter in self.classifier.named_parameters():
+        #    if 1:
+        #        parameter.requires_grad_(True)
 
     def forward(self, x):
         #print(self.body)
@@ -59,7 +62,7 @@ class ViTEncoder(nn.Module):
         #print(xs.shape)
         xs = F.relu(self.classifier0(xs))
         #print(xs.shape)
-        xf = self.classifier(xs.flatten(1))
+        xf = F.relu(self.classifier(xs.flatten(1)))
         #print(xf.shape)
 
         return {
@@ -71,6 +74,6 @@ class ViTEncoder(nn.Module):
 
 def build_ViTEncoder(config):
     vit = ViTEncoder(hidden_dim=config.hidden_dim)
-    #print(vit.body)
-
+    #print(vit)
+    #exit()
     return vit

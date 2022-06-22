@@ -98,7 +98,12 @@ def main(config):
     print(f"Number of params: {n_parameters}")
 
     param_dicts = [
-        {"params": [p for n, p in model.named_parameters() if p.requires_grad]},
+        {"params": [p for n, p in model.named_parameters(
+        ) if "body" not in n and p.requires_grad]},
+        {
+            "params": [p for n, p in model.named_parameters() if "body" in n and p.requires_grad],
+            "lr": config.vit_body_lr,
+        },
     ]
     optimizer = torch.optim.AdamW(param_dicts, lr=config.vit_lr, weight_decay=config.vit_weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 20)
