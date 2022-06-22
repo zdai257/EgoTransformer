@@ -303,7 +303,11 @@ class EgoCapViT(Dataset):
         super().__init__()
         self.root = root
         self.transform = transform
-        self.feature_extractor = ViTFeatureExtractor.from_pretrained("./vit-feature_extractor")
+        if os.path.exists("./vit_classify-feature_extractor"):
+            self.feature_extractor = ViTFeatureExtractor.from_pretrained("./vit_classify-feature_extractor")
+        else:
+            self.feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224")
+            self.feature_extractor.save_pretrained("./vit_classify-feature_extractor")
         # self.annot is a list of tuples [('imgname.jpg', split_index, 'I am doing.', (<where>, <when>))...]
         if mode == 'validation':
             self.annot = ann

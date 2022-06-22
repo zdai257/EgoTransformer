@@ -1,5 +1,5 @@
 import transformers
-from transformers import ViTModel, ViTConfig, ViTFeatureExtractor, ViTModel
+from transformers import ViTModel, ViTConfig, ViTFeatureExtractor, ViTModel, ViTForImageClassification
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -14,14 +14,6 @@ import numpy as np
 import math
 import sys
 import tqdm
-
-
-'''
-#feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224-in21k")
-feature_extractor = ViTFeatureExtractor.from_pretrained("./vit-feature_extractor")
-#model = ViTModel.from_pretrained("google/vit-base-patch16-224-in21k")
-model = ViTModel.from_pretrained("./vit-base-224")
-'''
 
 
 def criteria(loss_fun, output, context, dev, weights=(0.9, 0.69, 0.49)):
@@ -99,9 +91,6 @@ def main(config):
     np.random.seed(seed)
 
     model = ViT_encoder.build_ViTEncoder(config)
-    #for k,v in model.named_parameters():
-    #    print(k)
-    #print(list(model.parameters())[0].shape)
     model.to(device)
 
     n_parameters = sum(p.numel()
