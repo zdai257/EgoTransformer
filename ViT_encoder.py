@@ -26,7 +26,7 @@ class ViTEncoder(nn.Module):
 
         for name, parameter in backbone.named_parameters():
             if 1:
-                parameter.requires_grad_(False)
+                parameter.requires_grad_(True)
 
         return_layers = {'vit': 'vit2'}
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
@@ -56,11 +56,11 @@ class ViTEncoder(nn.Module):
 
         xs = self.body(x)
         xs = xs[next(iter(xs))].last_hidden_state
-        print(xs.shape)
+        #print(xs.shape)
         xs = F.relu(self.classifier0(xs))
-        print(xs.shape)
+        #print(xs.shape)
         xf = self.classifier(xs.flatten(1))
-        print(xf.shape)
+        #print(xf.shape)
 
         return {
             'where': self.where_head(xf),

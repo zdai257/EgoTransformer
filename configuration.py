@@ -101,6 +101,11 @@ class ConfigEgo(object):
         self.test_splits = []
 
 
+        # ViT
+        self.vit_lr = 1e-6
+        self.vit_weight_decay = 1e-3
+
+
 class Config2(object):
     def __init__(self):
         # Learning Rates

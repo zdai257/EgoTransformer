@@ -100,7 +100,7 @@ def main(config):
     param_dicts = [
         {"params": [p for n, p in model.named_parameters() if p.requires_grad]},
     ]
-    optimizer = torch.optim.AdamW(param_dicts, lr=1e-5, weight_decay=1e-4)
+    optimizer = torch.optim.AdamW(param_dicts, lr=config.vit_lr, weight_decay=config.vit_weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 20)
 
     criterion = torch.nn.CrossEntropyLoss()
