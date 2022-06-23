@@ -16,11 +16,11 @@ import sys
 import tqdm
 
 
-def criteria(loss_fun, output, context, dev, weights=(0.9, 0.69, 0.49)):
+def criteria(loss_fun, output, context, dev):
     losses = 0
     for i, key in enumerate(output):
         #print(output[key], context[key])
-        losses += weights[i] / sum(weights) * loss_fun(output[key], context[key].to(dev))
+        losses += loss_fun(output[key], context[key].to(dev))
     return losses
 
 
@@ -109,7 +109,9 @@ def main(config):
     optimizer = torch.optim.AdamW(param_dicts, lr=config.vit_lr, weight_decay=config.vit_weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 20)
 
-    criterion = torch.nn.CrossEntropyLoss()
+    # Weighted Loss Func
+    weights = torch.tensor([0.9, 0.69, 0.49]).to(device)
+    criterion = torch.nn.CrossEntropyLoss(weight=weights)
 
     # Dataset
     if config.modality == 'ego':
