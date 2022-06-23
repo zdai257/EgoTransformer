@@ -3,9 +3,9 @@ from transformers import ViTModel, ViTConfig, ViTFeatureExtractor, ViTModel, ViT
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from models import utils
+from models import utils, ViT_encoder
 from datasets import coco
-import ViT_encoder
+
 from configuration import *
 from PIL import Image, ImageOps
 import os

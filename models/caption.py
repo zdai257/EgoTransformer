@@ -50,6 +50,25 @@ class EgoCaption(Caption):
         return out
 
 
+class EgoViT(Caption):
+    def __init__(self, backbone, transformer, hidden_dim, vocab_size):
+        super().__init__(backbone, transformer, hidden_dim, vocab_size)
+
+    def forward(self, samples, target, target_mask, img):
+        if not isinstance(samples, NestedTensor):
+            samples = nested_tensor_from_tensor_list(samples)
+
+        features, pos = self.backbone(samples)
+        src, mask = features[-1].decompose()
+
+        assert mask is not None
+
+        hs = self.transformer(self.input_proj(src), mask,
+                              pos[-1], target, target_mask, img)
+        out = self.mlp(hs.permute(1, 0, 2))
+        return out
+
+
 # New Model
 class CaptionWithEncoderDecoder(nn.Module):
     def __init__(self, encoder, decoder, max_position_embeddings, start_token=101, end_token=102, vocab_size=30522):
@@ -379,14 +398,24 @@ def build_model(config):
 
     return model, criterion
 
+
 def build_model_ego(config):
     backbone = build_backbone(config)
     transformer = build_transformer(config)
 
     model = EgoCaption(backbone, transformer, config.hidden_dim, config.vocab_size)
     criterion = torch.nn.CrossEntropyLoss()
-
     return model, criterion
+
+
+def build_model_egovit(config):
+    backbone = build_backbone(config)
+    transformer = build_transformer(config)
+
+    model = EgoViT(backbone, transformer, config.hidden_dim, config.vocab_size)
+    criterion = torch.nn.CrossEntropyLoss()
+    return model, criterion
+
 
 def build_model_bs(config):
     backbone = build_backbone(config)

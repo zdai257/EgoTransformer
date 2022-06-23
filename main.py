@@ -28,8 +28,9 @@ def main(config):
         # Original CATR
         model, criterion = caption.build_model(config)
     elif config.modality == 'ego':
-        # Ego Model
-        model, criterion = caption.build_model_ego(config)
+        # EgoFormer
+        model, criterion = caption.build_model_egovit(config)
+        #model, criterion = caption.build_model_ego(config)
     elif config.modality == 'video':
         # Video Model
         model, criterion = caption.build_model_bs(config)
@@ -37,7 +38,7 @@ def main(config):
         # exit()
     # Multi-GPU
     # model = torch.nn.DataParallel(model)
-
+    print(model); exit()
     model.to(device)
 
     n_parameters = sum(p.numel()

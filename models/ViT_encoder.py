@@ -1,25 +1,22 @@
 import os.path
-
-import torch
+from os.path import join
 import torch.nn.functional as F
-import torchvision
+import torchvision as tv
 from torch import nn
 from torchvision.models._utils import IntermediateLayerGetter
-from models import utils
-from models.caption import MLP
-from transformers import ViTModel, ViTConfig
-from transformers import ViTFeatureExtractor, ViTModel, ViTForImageClassification
+from transformers import ViTModel, ViTConfig, ViTFeatureExtractor, ViTModel, ViTForImageClassification
 
 
 class ViTEncoder(nn.Module):
 
-    def __init__(self, num_layers=2, hidden_dim=256):
+    def __init__(self, hidden_dim=256):
         super().__init__()
-        if os.path.exists("./vit_classify-base-patch16-224"):
-            backbone = ViTForImageClassification.from_pretrained("./vit_classify-base-patch16-224")
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        if os.path.exists(join(root_dir, "vit_classify-base-patch16-224")):
+            backbone = ViTForImageClassification.from_pretrained(join(root_dir, "vit_classify-base-patch16-224"))
         else:
             backbone = ViTForImageClassification.from_pretrained("google/vit-base-patch16-224")
-            backbone.save_pretrained("./vit_classify-base-patch16-224")
+            backbone.save_pretrained(join(root_dir, "vit_classify-base-patch16-224"))
         #print(backbone)
         #for k, v in backbone.named_parameters():
         #    print(k, v.shape)
@@ -32,8 +29,8 @@ class ViTEncoder(nn.Module):
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
         self.classifier0 = nn.Linear(in_features=768, out_features=hidden_dim)
-
-        self.classifier = MLP(hidden_dim * 197, hidden_dim=512, output_dim=hidden_dim, num_layers=num_layers)
+        self.fc1 = nn.Linear(in_features=hidden_dim * 197, out_features=512)
+        self.fc2 = nn.Linear(in_features=1024, out_features=hidden_dim)
 
         self.where_head = nn.Sequential(
             nn.Dropout(p=0.1),
@@ -62,7 +59,8 @@ class ViTEncoder(nn.Module):
         #print(xs.shape)
         xs = F.relu(self.classifier0(xs))
         #print(xs.shape)
-        xf = F.relu(self.classifier(xs.flatten(1)))
+        xf = F.relu(self.fc1(xs.flatten(1)))
+        xf = F.relu(self.fc2(xf))
         #print(xf.shape)
 
         return {

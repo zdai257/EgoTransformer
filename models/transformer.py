@@ -5,6 +5,8 @@ from typing import Optional, List
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
+from torchvision.models._utils import IntermediateLayerGetter
+from .ViT_encoder import ViTEncoder
 
 
 class Transformer(nn.Module):
@@ -98,6 +100,56 @@ class EgoTransformer(Transformer):
         return hs
 
 
+# Dual-ViT model
+class EgoFormer(Transformer):
+    def __init__(self, config, d_model=512, nhead=8, num_encoder_layers=6,
+                 num_decoder_layers=6, dim_feedforward=2048, dropout=0.1,
+                 activation="relu", normalize_before=False,
+                 return_intermediate_dec=False):
+        super().__init__(config, d_model, nhead, num_encoder_layers,
+                 num_decoder_layers, dim_feedforward, dropout,
+                 activation, normalize_before, return_intermediate_dec)
+        # Define learnable embedding for "tag_token"
+        #self.context_embeddings = ContextEmbeddings(config)
+        # Extract Context-ViT
+        vit_encoder2 = ViTEncoder()
+        self.ctx_encoder = IntermediateLayerGetter(vit_encoder2, return_layers={"classifier0": "ctx2"})
+
+        # Redefine decoder layer with ContextFuse
+        decoder_layer = EgoViTDecoderLayer(d_model, nhead, dim_feedforward,
+                                           dropout, activation, normalize_before)
+        decoder_norm = nn.LayerNorm(d_model)
+        self.decoder = EgoViTDecoder(decoder_layer, num_decoder_layers, decoder_norm,
+                                     return_intermediate=return_intermediate_dec)
+        self._reset_parameters()
+
+    def forward(self, src, mask, pos_embed, tgt, tgt_mask, img):
+        # flatten NxCxHxW to HWxNxC
+        bs, c, h, w = src.shape
+        src = src.flatten(2).permute(2, 0, 1)
+        pos_embed = pos_embed.flatten(2).permute(2, 0, 1)  # 'pos_embed' is only for Encoder
+        mask = mask.flatten(1)
+
+        tgt = self.embeddings(tgt).permute(1, 0, 2)
+        query_embed = self.embeddings.position_embeddings.weight.unsqueeze(1)
+        query_embed = query_embed.repeat(1, bs, 1)
+        # tag_token: (B, seq") => (seq", B, d_m); tag_mask: (B, seq") as <key_padding_mask>
+        #tag_token = self.context_embeddings(tag_token).permute(1, 0, 2)
+        # input['pixel_values'] -> ctx
+        ctx = self.ctx_encoder(img)
+        ctx = ctx[next(iter(ctx))].last_hidden_state
+
+        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
+        # memory: (seq, B, d_m); mask: (B, seq);
+        # tgt: (seq', B, d_m); squared_tgt_mask: (seq', seq')
+        # ctx: (seq", B, d_m) ?
+        hs = self.decoder(tgt, memory, ctx.permute(1, 0, 2), ctx_mask=None,
+                          memory_key_padding_mask=mask, tgt_key_padding_mask=tgt_mask,
+                          pos=pos_embed, query_pos=query_embed,
+                          tgt_mask=generate_square_subsequent_mask(len(tgt)).to(tgt.device))
+        return hs
+
+
 # SEPARATE ENCODER & DECODER
 class Encoder(nn.Module):
 
@@ -137,6 +189,7 @@ class Encoder(nn.Module):
         return memory, mask, pos_embed
 
 
+# SEPARATE ENCODER & DECODER
 class Decoder(nn.Module):
 
     def __init__(self, config, d_model=512, nhead=8, num_decoder_layers=6, dim_feedforward=2048, dropout=0.1,
@@ -261,6 +314,42 @@ class EgoTransformerDecoder(TransformerDecoder):
         intermediate = []
         for layer in self.layers:
             output = layer(output, memory, tag_token, tag_mask=tag_mask,
+                           tgt_mask=tgt_mask,
+                           memory_mask=memory_mask,
+                           tgt_key_padding_mask=tgt_key_padding_mask,
+                           memory_key_padding_mask=memory_key_padding_mask,
+                           pos=pos, query_pos=query_pos)
+            if self.return_intermediate:
+                intermediate.append(self.norm(output))
+
+        if self.norm is not None:
+            output = self.norm(output)
+            if self.return_intermediate:
+                intermediate.pop()
+                intermediate.append(output)
+
+        if self.return_intermediate:
+            return torch.stack(intermediate)
+
+        return output
+
+
+class EgoViTDecoder(TransformerDecoder):
+    def __init__(self, decoder_layer, num_layers, norm=None, return_intermediate=False):
+        super().__init__(decoder_layer=decoder_layer, num_layers=num_layers, norm=norm,
+                         return_intermediate=return_intermediate)
+
+    def forward(self, tgt, memory, ctx, ctx_mask: Optional[Tensor] = None,
+                tgt_mask: Optional[Tensor] = None,
+                memory_mask: Optional[Tensor] = None,
+                tgt_key_padding_mask: Optional[Tensor] = None,
+                memory_key_padding_mask: Optional[Tensor] = None,
+                pos: Optional[Tensor] = None,
+                query_pos: Optional[Tensor] = None):
+        output = tgt
+        intermediate = []
+        for layer in self.layers:
+            output = layer(output, memory, ctx, ctx_mask=ctx_mask,
                            tgt_mask=tgt_mask,
                            memory_mask=memory_mask,
                            tgt_key_padding_mask=tgt_key_padding_mask,
@@ -510,6 +599,89 @@ class EgoTransformerDecoderLayer(TransformerDecoderLayer):
                                  tgt_key_padding_mask, memory_key_padding_mask, pos, query_pos)
 
 
+class EgoViTDecoderLayer(TransformerDecoderLayer):
+    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
+                 activation="relu", normalize_before=False):
+        super().__init__(d_model, nhead, dim_feedforward, dropout,
+                 activation, normalize_before)
+        # Implementation of Stacked MHA layer for ContextViT fusion
+        self.multihead_attn2 = nn.MultiheadAttention(
+            d_model, nhead, dropout=dropout)
+        self.norm20 = nn.LayerNorm(d_model)
+        self.dropout20 = nn.Dropout(dropout)
+
+    def forward_post(self, tgt, memory, ctx, ctx_mask: Optional[Tensor] = None,
+                     tgt_mask: Optional[Tensor] = None,
+                     memory_mask: Optional[Tensor] = None,
+                     tgt_key_padding_mask: Optional[Tensor] = None,
+                     memory_key_padding_mask: Optional[Tensor] = None,
+                     pos: Optional[Tensor] = None,
+                     query_pos: Optional[Tensor] = None):
+        q = k = self.with_pos_embed(tgt, query_pos)
+        tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
+                              key_padding_mask=tgt_key_padding_mask)[0]
+        tgt = tgt + self.dropout1(tgt2)
+        tgt = self.norm1(tgt)
+        tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
+                                   key=self.with_pos_embed(memory, pos),
+                                   value=memory, attn_mask=memory_mask,
+                                   key_padding_mask=memory_key_padding_mask)[0]
+        tgt = tgt + self.dropout2(tgt2)
+        tgt = self.norm2(tgt)
+        # Cross MHA with ctx
+        tgt2 = self.multihead_attn2(query=tgt, key=ctx, value=ctx,
+                                    attn_mask=None, key_padding_mask=ctx_mask)[0]
+        tgt = tgt + self.dropout20(tgt2)
+        tgt = self.norm20(tgt)
+
+        tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
+        tgt = tgt + self.dropout3(tgt2)
+        tgt = self.norm3(tgt)
+        return tgt
+
+    def forward_pre(self, tgt, memory, ctx, ctx_mask: Optional[Tensor] = None,
+                    tgt_mask: Optional[Tensor] = None,
+                    memory_mask: Optional[Tensor] = None,
+                    tgt_key_padding_mask: Optional[Tensor] = None,
+                    memory_key_padding_mask: Optional[Tensor] = None,
+                    pos: Optional[Tensor] = None,
+                    query_pos: Optional[Tensor] = None):
+        tgt2 = self.norm1(tgt)
+        q = k = self.with_pos_embed(tgt2, query_pos)
+        tgt2 = self.self_attn(q, k, value=tgt2, attn_mask=tgt_mask,
+                              key_padding_mask=tgt_key_padding_mask)[0]
+        tgt = tgt + self.dropout1(tgt2)
+        tgt2 = self.norm2(tgt)
+        tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt2, query_pos),
+                                   key=self.with_pos_embed(memory, pos),
+                                   value=memory, attn_mask=memory_mask,
+                                   key_padding_mask=memory_key_padding_mask)[0]
+        tgt = tgt + self.dropout2(tgt2)
+        # Cross MHA with tag_token
+        tgt2 = self.norm20(tgt)
+        tgt2 = self.multihead_attn2(query=tgt2, key=ctx, value=ctx,
+                                    attn_mask=None, key_padding_mask=ctx_mask)[0]
+        tgt = tgt + self.dropout20(tgt2)
+
+        tgt2 = self.norm3(tgt)
+        tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt2))))
+        tgt = tgt + self.dropout3(tgt2)
+        return tgt
+
+    def forward(self, tgt, memory, ctx, ctx_mask: Optional[Tensor] = None,
+                tgt_mask: Optional[Tensor] = None,
+                memory_mask: Optional[Tensor] = None,
+                tgt_key_padding_mask: Optional[Tensor] = None,
+                memory_key_padding_mask: Optional[Tensor] = None,
+                pos: Optional[Tensor] = None,
+                query_pos: Optional[Tensor] = None):
+        if self.normalize_before:
+            return self.forward_pre(tgt, memory, ctx, ctx_mask, tgt_mask, memory_mask,
+                                    tgt_key_padding_mask, memory_key_padding_mask, pos, query_pos)
+        return self.forward_post(tgt, memory, ctx, ctx_mask, tgt_mask, memory_mask,
+                                 tgt_key_padding_mask, memory_key_padding_mask, pos, query_pos)
+
+
 class DecoderEmbeddings(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -583,7 +755,7 @@ def generate_square_subsequent_mask(sz):
 
 def build_transformer(config):
     if config.modality == 'ego':
-        return EgoTransformer(
+        return EgoFormer(
             config,
             d_model=config.hidden_dim,
             dropout=config.dropout,
