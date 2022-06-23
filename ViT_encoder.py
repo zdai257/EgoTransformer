@@ -36,17 +36,17 @@ class ViTEncoder(nn.Module):
         self.classifier = MLP(hidden_dim * 197, hidden_dim=512, output_dim=hidden_dim, num_layers=num_layers)
 
         self.where_head = nn.Sequential(
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=hidden_dim, out_features=3),
             #nn.Softmax(),
         )
         self.when_head = nn.Sequential(
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=hidden_dim, out_features=3),
             #nn.Softmax(),
         )
         self.whom_head = nn.Sequential(
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=0.1),
             nn.Linear(in_features=hidden_dim, out_features=3),
             #nn.Softmax(),
         )
@@ -66,9 +66,9 @@ class ViTEncoder(nn.Module):
         #print(xf.shape)
 
         return {
-            'where': F.log_softmax(self.where_head(xf)),
-            'when': F.log_softmax(self.when_head(xf)),
-            'whom': F.log_softmax(self.whom_head(xf))
+            'where': self.where_head(xf),
+            'when': self.when_head(xf),
+            'whom': self.whom_head(xf)
         }
 
 

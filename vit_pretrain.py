@@ -16,7 +16,7 @@ import sys
 import tqdm
 
 
-def criteria(loss_fun, output, context, dev, weight=[0.9, 0.69, 0.49]):
+def criteria(loss_fun, output, context, dev, weight=(0.9, 0.69, 0.49)):
     losses = 0
     for i, key in enumerate(output):
         #print(output[key], context[key])
@@ -106,6 +106,12 @@ def main(config):
             "lr": config.vit_body_lr,
         },
     ]
+    '''
+    for n, p in model.named_parameters():
+        if p.requires_grad:
+            print(n)
+    exit()
+    '''
     optimizer = torch.optim.AdamW(param_dicts, lr=config.vit_lr, weight_decay=config.vit_weight_decay)
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 20)
 
