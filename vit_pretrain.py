@@ -116,7 +116,7 @@ def main(config):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 20)
 
     # Weighted Loss Func
-    class_weights = torch.tensor([0.3, 0.5, 0.2]).to(device)
+    class_weights = torch.tensor([0.4, 0.4, 0.2]).to(device)
     criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 
     # Dataset

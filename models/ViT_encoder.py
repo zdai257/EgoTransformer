@@ -23,14 +23,14 @@ class ViTEncoder(nn.Module):
 
         for name, parameter in backbone.named_parameters():
             if 1:
-                parameter.requires_grad_(False)
+                parameter.requires_grad_(True)
 
         return_layers = {'vit': 'vit2'}
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
         self.classifier0 = nn.Linear(in_features=768, out_features=hidden_dim)
         self.fc1 = nn.Linear(in_features=hidden_dim * 197, out_features=512)
-        self.fc2 = nn.Linear(in_features=1024, out_features=hidden_dim)
+        self.fc2 = nn.Linear(in_features=512, out_features=hidden_dim)
 
         self.where_head = nn.Sequential(
             nn.Dropout(p=0.1),
