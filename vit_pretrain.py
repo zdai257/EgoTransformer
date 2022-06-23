@@ -16,11 +16,11 @@ import sys
 import tqdm
 
 
-def criteria(loss_fun, output, context, dev):
+def criteria(loss_fun, output, context, dev, weight=[0.9, 0.69, 0.49]):
     losses = 0
     for i, key in enumerate(output):
         #print(output[key], context[key])
-        losses += loss_fun(output[key], context[key].to(dev))
+        losses += weight[i] / sum(weight) * loss_fun(output[key], context[key].to(dev))
     return losses
 
 
@@ -110,8 +110,8 @@ def main(config):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 20)
 
     # Weighted Loss Func
-    weights = torch.tensor([0.9, 0.69, 0.49]).to(device)
-    criterion = torch.nn.CrossEntropyLoss(weight=weights)
+    class_weights = torch.tensor([0.3, 0.5, 0.2]).to(device)
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 
     # Dataset
     if config.modality == 'ego':

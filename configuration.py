@@ -102,8 +102,8 @@ class ConfigEgo(object):
 
 
         # ViT
-        self.vit_lr = 1e-5
-        self.vit_body_lr = 1e-6
+        self.vit_lr = 1e-4
+        self.vit_body_lr = 1e-5
         self.vit_weight_decay = 1e-3
 
 

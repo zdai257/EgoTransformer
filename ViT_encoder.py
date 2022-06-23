@@ -26,7 +26,7 @@ class ViTEncoder(nn.Module):
 
         for name, parameter in backbone.named_parameters():
             if 1:
-                parameter.requires_grad_(True)
+                parameter.requires_grad_(False)
 
         return_layers = {'vit': 'vit2'}
         self.body = IntermediateLayerGetter(backbone, return_layers=return_layers)
