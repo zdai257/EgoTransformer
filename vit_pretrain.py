@@ -19,6 +19,7 @@ import tqdm
 def criteria(loss_fun, output, context, dev, weights=(0.9, 0.69, 0.49)):
     losses = 0
     for i, key in enumerate(output):
+        #print(output[key], context[key])
         losses += weights[i] / sum(weights) * loss_fun(output[key], context[key].to(dev))
     return losses
 
@@ -37,7 +38,7 @@ def train_an_epoch(config, model, loss_func, data_loader,
             inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
             outputs = model(inputs['pixel_values'])
-
+            #print(outputs, contexts)
             loss = criteria(loss_func, outputs, contexts, device)
             loss_value = loss.item()
             epoch_loss += loss_value
@@ -136,7 +137,7 @@ def main(config):
         os.mkdir(save_dir)
 
     print("Start Training..")
-    for epoch in range(0, 30):
+    for epoch in range(config.start_epoch, config.epochs):
         print(f"Epoch: {epoch}")
         epoch_loss = train_an_epoch(config, model, criterion, data_loader_train,
                                     optimizer, device, epoch, config.clip_max_norm)

@@ -38,17 +38,17 @@ class ViTEncoder(nn.Module):
         self.where_head = nn.Sequential(
             nn.Dropout(p=0.2),
             nn.Linear(in_features=hidden_dim, out_features=3),
-            nn.Softmax(),
+            #nn.Softmax(),
         )
         self.when_head = nn.Sequential(
             nn.Dropout(p=0.2),
             nn.Linear(in_features=hidden_dim, out_features=3),
-            nn.Softmax(),
+            #nn.Softmax(),
         )
         self.whom_head = nn.Sequential(
             nn.Dropout(p=0.2),
             nn.Linear(in_features=hidden_dim, out_features=3),
-            nn.Softmax(),
+            #nn.Softmax(),
         )
         #for name, parameter in self.classifier.named_parameters():
         #    if 1:
@@ -66,9 +66,9 @@ class ViTEncoder(nn.Module):
         #print(xf.shape)
 
         return {
-            'where': self.where_head(xf),
-            'when': self.when_head(xf),
-            'whom': self.whom_head(xf)
+            'where': F.log_softmax(self.where_head(xf)),
+            'when': F.log_softmax(self.when_head(xf)),
+            'whom': F.log_softmax(self.whom_head(xf))
         }
 
 

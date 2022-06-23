@@ -313,10 +313,14 @@ class EgoCapViT(Dataset):
             self.annot = ann
         if mode == 'training':
             self.annot = ann
-
-        self.where_dict = {'indoor': 0, 'outdoor': 2, 'na': 1}
-        self.when_dict = {'daytime': 0, 'night': 2, 'na': 1}
-        self.whom_dict = {'human': 0, 'object': 2, 'na': 1}
+        '''
+        self.where_dict = {'indoor': torch.tensor([1, 0, 0]), 'outdoor': torch.tensor([0, 1, 0]), 'na': torch.tensor([0, 0, 1])}
+        self.when_dict = {'daytime': torch.tensor([1, 0, 0]), 'night': torch.tensor([0, 1, 0]), 'na':  torch.tensor([0, 0, 1])}
+        self.whom_dict = {'human':  torch.tensor([1, 0, 0]), 'object':  torch.tensor([0, 1, 0]), 'na':  torch.tensor([0, 0, 1])}
+        '''
+        self.where_dict = {'indoor': 0, 'outdoor': 1, 'na': 2}
+        self.when_dict = {'daytime': 0, 'night': 1, 'na': 2}
+        self.whom_dict = {'human': 0, 'object': 1, 'na': 2}
 
         self.where_dict_syn = {'indoor': "in indoor inside room", 'outdoor': "out outside outdoor outdoors", 'na': ""}
         self.when_dict_syn = {'daytime': "day daytime sunny midday", 'night': "night nighttime midnight evening", 'na': ""}
