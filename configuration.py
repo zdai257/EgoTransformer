@@ -1,6 +1,5 @@
 class Config(object):
     def __init__(self):
-
         # Learning Rates
         self.lr_backbone = 1e-5
         self.lr = 1e-4
@@ -15,7 +14,7 @@ class Config(object):
         self.backbone = 'resnet101'
         self.position_embedding = 'sine'
         self.dilation = True
-        
+
         # Basic
         self.device = 'cuda'
         self.seed = 42
@@ -49,8 +48,8 @@ class Config(object):
 class ConfigEgo(object):
     def __init__(self):
         # Learning Rates
-        self.lr_backbone = 1e-6
-        self.lr = 1e-5
+        self.lr_backbone = 1e-5
+        self.lr = 1e-4
 
         # Epochs
         self.epochs = 300
@@ -86,7 +85,7 @@ class ConfigEgo(object):
         self.pre_norm = True
 
         # Dataset
-        self.dir = '../coco'
+        self.dir = '/mnt/datasets/vutran/egocap/coco'
         self.limit = -1
 
         # TYPE of dataset
@@ -94,12 +93,11 @@ class ConfigEgo(object):
         self.IsFinetune = True
         self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
-        self.egocap_data_dir = "/home/zdai/repos/EgoCapSurvey"
+        self.egocap_data_dir = "/mnt/datasets/vutran/egocap/EgoCapSurvey"
         self.egocap_ana_filename = "analyzed_annatations_ref.json"
         self.train_splits = [4, 5, 6, 7, 8, 9, 10]
         self.val_splits = [1, 2, 3]
         self.test_splits = []
-
 
         # ViT
         self.vit_lr = 1e-4
@@ -129,13 +127,13 @@ class Config2(object):
         # Basic
         self.device = 'cuda:0'
         self.seed = 42
-        self.batch_size = 16  #32
+        self.batch_size = 16  # 32
         self.num_workers = 8
         self.checkpoint = './checkpoint.pth'
         self.clip_max_norm = 0.1
 
         # Transformer
-        self.hidden_dim = 512  #256
+        self.hidden_dim = 512  # 256
         self.pad_token_id = 0
         self.max_position_embeddings = 128
         self.layer_norm_eps = 1e-12
@@ -160,6 +158,7 @@ class Config2(object):
         self.frame_per_clip = 5
         self.min_frame_per_clip = 7
 
+
 class Config3(object):
     def __init__(self):
         # Learning Rates
@@ -180,7 +179,7 @@ class Config3(object):
         # Basic
         self.device = 'cuda'
         self.seed = 42
-        self.batch_size = 16  #32
+        self.batch_size = 16  # 32
         self.num_workers = 8
         self.checkpoint = './checkpoint.pth'
         self.clip_max_norm = 0.1
@@ -202,6 +201,7 @@ class Config3(object):
         # Dataset
         self.dir = "/root/datasets/COCO"
         self.limit = -1
+
 
 class Config4(object):
     def __init__(self):
@@ -225,7 +225,7 @@ class Config4(object):
         # Basic
         self.device = 'cuda'
         self.seed = 42
-        self.batch_size = 1  #32
+        self.batch_size = 1  # 32
         self.num_workers = 8
         self.checkpoint = './checkpoint_vid.pth'
         self.clip_max_norm = 0.1
@@ -257,6 +257,7 @@ class Config4(object):
         self.frame_per_clip = 2
         self.min_frame_per_clip = 7
 
+
 class Config5(object):
     def __init__(self):
         # Learning Rates
@@ -274,7 +275,7 @@ class Config5(object):
         # Backbone
         self.backbone = 'resnet34'
         self.position_embedding = 'sine'  # 'sine' / 'learned'
-        self.dilation = False  #True
+        self.dilation = False  # True
 
         # Basic
         self.device = 'cuda'

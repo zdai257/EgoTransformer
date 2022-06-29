@@ -15,6 +15,8 @@ import math
 import sys
 import tqdm
 
+import torch.nn.functional as F
+
 
 def criteria(loss_fun, output, context, dev, weight=(0.9, 0.69, 0.49)):
     losses = 0
@@ -22,6 +24,21 @@ def criteria(loss_fun, output, context, dev, weight=(0.9, 0.69, 0.49)):
         #print(output[key], context[key])
         losses += weight[i] / sum(weight) * loss_fun(output[key], context[key].to(dev))
     return losses
+
+
+def get_accuracy(pred, label):
+    pred_where = pred['where'].detach().max(dim=1)[1].cpu().numpy()
+    pred_when = pred['when'].detach().max(dim=1)[1].cpu().numpy()
+    pred_whom = pred['whom'].detach().max(dim=1)[1].cpu().numpy()
+    gt_where = label['where'].long().max(dim=1)[1].cpu().numpy()
+    gt_when = label['when'].long().max(dim=1)[1].cpu().numpy()
+    gt_whom = label['whom'].long().max(dim=1)[1].cpu().numpy()
+
+    acc0 = np.sum(pred_where == gt_where).astype(float)/pred_where.shape[0]
+    acc1 = np.sum(pred_when == gt_when).astype(float)/pred_when.shape[0]
+    acc2 = np.sum(pred_whom == gt_whom).astype(float)/pred_whom.shape[0]
+
+    return {'where': acc0, 'when': acc1, 'whom': acc2}
 
 
 def train_an_epoch(config, model, loss_func, data_loader,
@@ -34,6 +51,10 @@ def train_an_epoch(config, model, loss_func, data_loader,
     with tqdm.tqdm(total=total) as pbar:
         for i, tuples in enumerate(data_loader):
             inputs, contexts = tuples[6], tuples[7]
+
+            contexts['where'] = (F.one_hot(contexts['where'], num_classes=3)).float()
+            contexts['when'] = (F.one_hot(contexts['when'], num_classes=3)).float()
+            contexts['whom'] = (F.one_hot(contexts['whom'], num_classes=3)).float()
 
             inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
@@ -64,9 +85,16 @@ def evaluate(config, model, loss_func, data_loader, device):
     validation_loss = 0.0
     total = len(data_loader)
 
+    count = 0
+    acc_where = 0.0
+    acc_when = 0.0
+    acc_whom = 0.0
     with tqdm.tqdm(total=total) as pbar:
         for i, tuples in enumerate(data_loader):
             inputs, contexts = tuples[6], tuples[7]
+            contexts['where'] = (F.one_hot(contexts['where'], num_classes=3)).float()
+            contexts['when'] = (F.one_hot(contexts['when'], num_classes=3)).float()
+            contexts['whom'] = (F.one_hot(contexts['whom'], num_classes=3)).float()
             inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
             outputs = model(inputs['pixel_values'])
@@ -75,7 +103,15 @@ def evaluate(config, model, loss_func, data_loader, device):
             loss_value = loss.item()
             validation_loss += loss_value
 
+            acc = get_accuracy(outputs, contexts)
+            acc_where += acc['where']
+            acc_when += acc['when']
+            acc_whom += acc['whom']
+            count += 1
+
             pbar.update(1)
+
+    print(f'Accuracy (where, when, whom): {acc_where / count}, {acc_when / count}, {acc_whom / count}')
 
     return validation_loss / total
 
@@ -144,6 +180,8 @@ def main(config):
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
+    best_acc = 0.0
+
     print("Start Training..")
     for epoch in range(config.start_epoch, config.epochs):
         print(f"Epoch: {epoch}")
@@ -152,16 +190,24 @@ def main(config):
         lr_scheduler.step()
         print(f"Training Loss: {epoch_loss}")
 
-        validation_loss = evaluate(config, model, criterion, data_loader_val, device)
+        validation_loss, acc_where, acc_when, acc_whom = evaluate(config, model, criterion, data_loader_val, device)
         print(f"Validation Loss: {validation_loss}")
 
-        if (epoch + 1) % 5 == 0:
-            model_name = 'ViT-epoch{}_loss{}.pth'.format(epoch, round(validation_loss * 100))
+        # magic numbers?
+        avg_acc = (0.24 * acc_where + 0.38 * acc_when + 0.38 * acc_whom)
+        if best_acc < avg_acc:
+            best_acc = avg_acc
+            print('Saving model ...')
+            model_name = 'best.pth'  # 'ViT-epoch{}_loss{}.pth'.format(epoch, round(validation_loss * 100))
             torch.save({
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
                 'lr_scheduler': lr_scheduler.state_dict(),
                 'epoch': epoch,
+                'best_acc': best_acc,
+                'best_where': acc_where,
+                'best_when': acc_when,
+                'best_whom': acc_whom,
             }, join(save_dir, model_name))
         print()
 

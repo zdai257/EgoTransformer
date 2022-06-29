@@ -35,17 +35,17 @@ class ViTEncoder(nn.Module):
         self.where_head = nn.Sequential(
             nn.Dropout(p=0.1),
             nn.Linear(in_features=hidden_dim, out_features=3),
-            #nn.Softmax(),
+            nn.Softmax(),
         )
         self.when_head = nn.Sequential(
             nn.Dropout(p=0.1),
             nn.Linear(in_features=hidden_dim, out_features=3),
-            #nn.Softmax(),
+            nn.Softmax(),
         )
         self.whom_head = nn.Sequential(
             nn.Dropout(p=0.1),
             nn.Linear(in_features=hidden_dim, out_features=3),
-            #nn.Softmax(),
+            nn.Softmax(),
         )
         #for name, parameter in self.classifier.named_parameters():
         #    if 1:
