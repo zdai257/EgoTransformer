@@ -38,19 +38,29 @@ def main(config):
         # exit()
     # Multi-GPU
     # model = torch.nn.DataParallel(model)
-    print(model); exit()
+
+    #print(model); exit()
+    #for n, p in model.named_parameters():
+    #    print(n)
+    #exit()
+
     model.to(device)
 
     n_parameters = sum(p.numel()
                        for p in model.parameters() if p.requires_grad)
     print(f"Number of params: {n_parameters}")
 
+    # Freeze layers with "ctx_encoder"
     param_dicts = [
         {"params": [p for n, p in model.named_parameters(
-        ) if "backbone" not in n and p.requires_grad]},
+        ) if "backbone" not in n and p.requires_grad and "ctx_encoder" not in n]},
         {
-            "params": [p for n, p in model.named_parameters() if "backbone" in n and p.requires_grad],
+            "params": [p for n, p in model.named_parameters() if "backbone" in n and p.requires_grad and "ctx_encoder" not in n],
             "lr": config.lr_backbone,
+        },
+        {
+            "params": [p for n, p in model.named_parameters() if "ctx_encoder" in n],
+            "lr": 0.,
         },
     ]
     optimizer = torch.optim.AdamW(
@@ -119,6 +129,27 @@ def main(config):
         config.start_epoch = checkpoint['epoch'] + 1
         print("Current checkpoint epoch = %d" % checkpoint['epoch'])
     '''
+    # Load from context ViT
+    if os.path.exists(config.pretrain_ctx_vit):
+        print("Loading Context ViT Encoder...")
+        pretrained_vit = torch.load(config.pretrain_ctx_vit, map_location='cpu')
+        pretrained_vit_dict = pretrained_vit['model']
+        print("Current pretrain_ctx_vit epoch = %d" % pretrained_vit['epoch'])
+        #print(pretrained_vit.keys())
+        #exit()
+
+        model_dict = model.state_dict()
+        # 1. filter out unnecessary keys
+        pretrained_vit_dict = {k: v for k, v in pretrained_vit_dict.items() if k in model_dict}
+        print("Pretrained ctx ViT layers in EgoFormer: ", pretrained_vit_dict.keys())
+        # 2. overwrite entries in the existing state dict
+        model_dict.update(pretrained_vit_dict)
+        # 3. load the new state dict
+        model.load_state_dict(model_dict)
+    else:
+        raise KeyError("Pre-trained context ViT not found!")
+
+    # Load captioner from pre-trained COCO
     if config.IsFinetune:
         # Load state_dict of pretrained model
         if os.path.exists(config.pretrain_checkpoint):

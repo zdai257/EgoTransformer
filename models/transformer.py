@@ -113,7 +113,9 @@ class EgoFormer(Transformer):
         #self.context_embeddings = ContextEmbeddings(config)
         # Extract Context-ViT
         vit_encoder2 = ViTEncoder()
-        self.ctx_encoder = IntermediateLayerGetter(vit_encoder2, return_layers={"classifier0": "ctx2"})
+        #self.ctx_encoder = IntermediateLayerGetter(vit_encoder2, return_layers={"classifier0": "ctx2"})
+        self.ctx_body = IntermediateLayerGetter(vit_encoder2, return_layers={"body": "body2"})
+        self.ctx_classify = IntermediateLayerGetter(vit_encoder2, return_layers={"classifier0": "classifier2"})
 
         # Redefine decoder layer with ContextFuse
         decoder_layer = EgoViTDecoderLayer(d_model, nhead, dim_feedforward,
@@ -136,8 +138,10 @@ class EgoFormer(Transformer):
         # tag_token: (B, seq") => (seq", B, d_m); tag_mask: (B, seq") as <key_padding_mask>
         #tag_token = self.context_embeddings(tag_token).permute(1, 0, 2)
         # input['pixel_values'] -> ctx
-        ctx = self.ctx_encoder(img)
-        ctx = ctx[next(iter(ctx))].last_hidden_state
+
+        xs = self.ctx_body(img)
+        print(xs)
+        ctx = F.relu(self.ctx_classify(xs))
 
         memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
         # memory: (seq, B, d_m); mask: (B, seq);

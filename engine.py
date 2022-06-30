@@ -24,10 +24,10 @@ def train_one_epoch(config, model, criterion, data_loader,
             cap_masks = cap_masks.to(device)
 
             if config.modality == 'ego':
-                tag_token, tag_mask = tuples[4], tuples[5]
-                tag_token = tag_token.to(device)
-                tag_mask = tag_mask.to(device)
-                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1], tag_token, tag_mask)
+                img = tuples[6]
+                img_tensor = img['pixel_values'].squeeze(1).to(device)
+
+                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1], img_tensor)
             else:
                 outputs = model(samples, caps[:, :-1], cap_masks[:, :-1])
             loss = criterion(outputs.permute(0, 2, 1), caps[:, 1:])
@@ -65,10 +65,10 @@ def evaluate(config, model, criterion, data_loader, device):
             cap_masks = cap_masks.to(device)
 
             if config.modality == 'ego':
-                tag_token, tag_mask = tuples[4], tuples[5]
-                tag_token = tag_token.to(device)
-                tag_mask = tag_mask.to(device)
-                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1], tag_token, tag_mask)
+                img = tuples[6]
+                img_tensor = img['pixel_values'].squeeze(1).to(device)
+
+                outputs = model(samples, caps[:, :-1], cap_masks[:, :-1], img_tensor)
             else:
                 outputs = model(samples, caps[:, :-1], cap_masks[:, :-1])
             loss = criterion(outputs.permute(0, 2, 1), caps[:, 1:])

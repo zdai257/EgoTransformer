@@ -52,7 +52,7 @@ class ConfigEgo(object):
         self.lr = 1e-4
 
         # Epochs
-        self.epochs = 300
+        self.epochs = 10
         self.lr_drop = 20
         self.start_epoch = 0  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
@@ -65,9 +65,9 @@ class ConfigEgo(object):
         # Basic
         self.device = 'cuda'
         self.seed = 42
-        self.batch_size = 4
+        self.batch_size = 2
         self.num_workers = 8
-        self.checkpoint = './finetuneContextFuse.pth'
+        self.checkpoint = './EgoFormer.pth'
         self.clip_max_norm = 0.1
 
         # Transformer
@@ -102,7 +102,8 @@ class ConfigEgo(object):
         # ViT
         self.vit_lr = 1e-4
         self.vit_body_lr = 1e-5
-        self.vit_weight_decay = 1e-2
+        self.vit_weight_decay = 1e-3
+        self.pretrain_ctx_vit = "./vit_checks/ctx_vit.pth"
 
 
 class Config2(object):
