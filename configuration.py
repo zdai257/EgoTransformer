@@ -85,7 +85,7 @@ class ConfigEgo(object):
         self.pre_norm = True
 
         # Dataset
-        self.dir = '/mnt/datasets/vutran/egocap/coco'
+        self.dir = '/home/zdai/repos/COCO2017'
         self.limit = -1
 
         # TYPE of dataset
@@ -93,11 +93,11 @@ class ConfigEgo(object):
         self.IsFinetune = True
         self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
-        self.egocap_data_dir = "/mnt/datasets/vutran/egocap/EgoCapSurvey"
-        self.egocap_ana_filename = "analyzed_annatations_ref.json"
-        self.train_splits = [4, 5, 6, 7, 8, 9, 10]
-        self.val_splits = [1, 2, 3]
-        self.test_splits = []
+        self.egocap_data_dir = "/home/zdai/repos/EgoCapSurvey"
+        self.egocap_ana_filename = "EgoCap_annatations_ref.json"
+        self.train_splits = [4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21]
+        self.val_splits = [3, 10, 17]
+        self.test_splits = [1, 2]
 
         # ViT
         self.vit_lr = 1e-4

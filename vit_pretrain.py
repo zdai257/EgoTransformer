@@ -22,11 +22,16 @@ def criteria(loss_fun, output, context, dev, weight=(0.9, 0.69, 0.49)):
     losses = 0
     for i, key in enumerate(output):
         #print(output[key], context[key])
+        #print(output[key].shape, context[key].shape)
         losses += weight[i] / sum(weight) * loss_fun(output[key], context[key].to(dev))
     return losses
 
 
 def get_accuracy(pred, label):
+    label['where'] = (F.one_hot(label['where'], num_classes=3)).long()
+    label['when'] = (F.one_hot(label['when'], num_classes=3)).long()
+    label['whom'] = (F.one_hot(label['whom'], num_classes=3)).long()
+
     pred_where = pred['where'].detach().max(dim=1)[1].cpu().numpy()
     pred_when = pred['when'].detach().max(dim=1)[1].cpu().numpy()
     pred_whom = pred['whom'].detach().max(dim=1)[1].cpu().numpy()
@@ -51,10 +56,11 @@ def train_an_epoch(config, model, loss_func, data_loader,
     with tqdm.tqdm(total=total) as pbar:
         for i, tuples in enumerate(data_loader):
             inputs, contexts = tuples[6], tuples[7]
-
-            contexts['where'] = (F.one_hot(contexts['where'], num_classes=3)).float()
-            contexts['when'] = (F.one_hot(contexts['when'], num_classes=3)).float()
-            contexts['whom'] = (F.one_hot(contexts['whom'], num_classes=3)).float()
+            '''
+            contexts['where'] = (F.one_hot(contexts['where'], num_classes=3)).long()
+            contexts['when'] = (F.one_hot(contexts['when'], num_classes=3)).long()
+            contexts['whom'] = (F.one_hot(contexts['whom'], num_classes=3)).long()
+            '''
 
             inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
@@ -92,9 +98,7 @@ def evaluate(config, model, loss_func, data_loader, device):
     with tqdm.tqdm(total=total) as pbar:
         for i, tuples in enumerate(data_loader):
             inputs, contexts = tuples[6], tuples[7]
-            contexts['where'] = (F.one_hot(contexts['where'], num_classes=3)).float()
-            contexts['when'] = (F.one_hot(contexts['when'], num_classes=3)).float()
-            contexts['whom'] = (F.one_hot(contexts['whom'], num_classes=3)).float()
+
             inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
             outputs = model(inputs['pixel_values'])
@@ -113,7 +117,7 @@ def evaluate(config, model, loss_func, data_loader, device):
 
     print(f'Accuracy (where, when, whom): {acc_where / count}, {acc_when / count}, {acc_whom / count}')
 
-    return validation_loss / total
+    return validation_loss / total, acc_where / count, acc_when / count, acc_whom / count
 
 
 def main(config):

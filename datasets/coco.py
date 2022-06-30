@@ -485,7 +485,10 @@ def build_dataset_egocap(config, mode='training'):
                 egocap_train.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
             elif val['SplitIndex'] in config.val_splits:
                 egocap_val.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
+            elif val['SplitIndex'] in config.test_splits:
+                pass
             else:
+                print(key, val['SplitIndex'])
                 raise KeyError("Not in existing Splits!")
 
     if mode == 'training':
