@@ -202,7 +202,11 @@ def main(config):
         if best_acc < avg_acc:
             best_acc = avg_acc
             print('Saving model ...')
-            model_name = 'ctx_vit.pth'  # 'ViT-epoch{}_loss{}.pth'.format(epoch, round(validation_loss * 100))
+            model_name = 'ctx_vit-accwhere{}_accwhen{}_accwhom{}.pth'.format(
+                round(acc_where * 100),
+                round(acc_when * 100),
+                round(acc_whom * 100)
+            )  # 'ViT-epoch{}_loss{}.pth'.format(epoch, round(validation_loss * 100))
             torch.save({
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict(),

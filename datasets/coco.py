@@ -326,7 +326,7 @@ class EgoCapViT(Dataset):
         self.where_dict_syn = {'indoor': "in indoor inside room", 'outdoor': "out outside outdoor outdoors", 'na': ""}
         self.when_dict_syn = {'daytime': "day daytime sunny midday", 'night': "night nighttime midnight evening", 'na': ""}
 
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=True)
+        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=False)
         self.max_length = max_length + 1
 
     def __len__(self):

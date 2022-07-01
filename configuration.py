@@ -52,7 +52,7 @@ class ConfigEgo(object):
         self.lr = 1e-4
 
         # Epochs
-        self.epochs = 50
+        self.epochs = 30
         self.lr_drop = 20
         self.start_epoch = 0  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
@@ -65,7 +65,7 @@ class ConfigEgo(object):
         # Basic
         self.device = 'cuda'
         self.seed = 42
-        self.batch_size = 2
+        self.batch_size = 4
         self.num_workers = 8
         self.checkpoint = './EgoFormer.pth'
         self.clip_max_norm = 0.1
