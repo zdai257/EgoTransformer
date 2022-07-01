@@ -627,17 +627,20 @@ class EgoViTDecoderLayer(TransformerDecoderLayer):
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
         tgt = self.norm1(tgt)
+
+        # Cross MHA with ctx
+        tgt2 = self.multihead_attn2(query=tgt, key=ctx, value=ctx,
+                                    attn_mask=None, key_padding_mask=ctx_mask)[0]
+        tgt = tgt + self.dropout20(tgt2)
+        tgt = self.norm20(tgt)
+
+        # Cross MHA with visual features
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
                                    key_padding_mask=memory_key_padding_mask)[0]
         tgt = tgt + self.dropout2(tgt2)
         tgt = self.norm2(tgt)
-        # Cross MHA with ctx
-        tgt2 = self.multihead_attn2(query=tgt, key=ctx, value=ctx,
-                                    attn_mask=None, key_padding_mask=ctx_mask)[0]
-        tgt = tgt + self.dropout20(tgt2)
-        tgt = self.norm20(tgt)
 
         tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
         tgt = tgt + self.dropout3(tgt2)
@@ -656,17 +659,20 @@ class EgoViTDecoderLayer(TransformerDecoderLayer):
         tgt2 = self.self_attn(q, k, value=tgt2, attn_mask=tgt_mask,
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
+
+        # Cross MHA with ctx
+        tgt2 = self.norm20(tgt)
+        tgt2 = self.multihead_attn2(query=tgt2, key=ctx, value=ctx,
+                                    attn_mask=None, key_padding_mask=ctx_mask)[0]
+        tgt = tgt + self.dropout20(tgt2)
+
+        # Cross MHA with visual features
         tgt2 = self.norm2(tgt)
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt2, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
                                    key_padding_mask=memory_key_padding_mask)[0]
         tgt = tgt + self.dropout2(tgt2)
-        # Cross MHA with tag_token
-        tgt2 = self.norm20(tgt)
-        tgt2 = self.multihead_attn2(query=tgt2, key=ctx, value=ctx,
-                                    attn_mask=None, key_padding_mask=ctx_mask)[0]
-        tgt = tgt + self.dropout20(tgt2)
 
         tgt2 = self.norm3(tgt)
         tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt2))))
