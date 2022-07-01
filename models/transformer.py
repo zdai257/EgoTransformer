@@ -140,7 +140,8 @@ class EgoFormer(Transformer):
         # input['pixel_values'] -> ctx
 
         xs = self.ctx_encoder1(img)
-        xs = xs[next(iter(xs))].last_hidden_state
+        xs_key = xs[next(iter(xs))]
+        xs = xs_key[next(iter(xs_key))].last_hidden_state
         ctx = F.relu(self.ctx_encoder2(xs))
 
         memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
