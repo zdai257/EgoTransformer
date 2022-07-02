@@ -610,10 +610,14 @@ class EgoViTDecoderLayer(TransformerDecoderLayer):
         super().__init__(d_model, nhead, dim_feedforward, dropout,
                  activation, normalize_before)
         # Implementation of Stacked MHA layer for ContextViT fusion
-        self.multihead_attn2 = nn.MultiheadAttention(
-            d_model, nhead, dropout=dropout)
+        self.multihead_attn2 = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         self.norm20 = nn.LayerNorm(d_model)
         self.dropout20 = nn.Dropout(dropout)
+        # Implementation of Gated Information fusion
+        self.gate_v1 = nn.Linear(in_features=(266 + 197), out_features=266)
+        self.gate_v2 = nn.Linear(in_features=d_model, out_features=128)
+        self.gate_c1 = nn.Linear(in_features=(266 + 197), out_features=197)
+        self.gate_c2 = nn.Linear(in_features=d_model, out_features=128)
 
     def forward_post(self, tgt, memory, ctx, ctx_mask: Optional[Tensor] = None,
                      tgt_mask: Optional[Tensor] = None,
@@ -627,17 +631,27 @@ class EgoViTDecoderLayer(TransformerDecoderLayer):
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
         tgt = self.norm1(tgt)
+        # Cross Visual Attention
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                                    key=self.with_pos_embed(memory, pos),
                                    value=memory, attn_mask=memory_mask,
                                    key_padding_mask=memory_key_padding_mask)[0]
-        tgt = tgt + self.dropout2(tgt2)
-        tgt = self.norm2(tgt)
+        tgt_a = tgt + self.dropout2(tgt2)
+        tgt_a = self.norm2(tgt_a)
         # Cross MHA with ctx
-        tgt2 = self.multihead_attn2(query=tgt, key=ctx, value=ctx,
+        tgt2 = self.multihead_attn2(query=self.with_pos_embed(tgt, query_pos), key=ctx, value=ctx,
                                     attn_mask=None, key_padding_mask=ctx_mask)[0]
-        tgt = tgt + self.dropout20(tgt2)
-        tgt = self.norm20(tgt)
+        tgt_b = tgt + self.dropout20(tgt2)
+        tgt_b = self.norm20(tgt_b)
+
+        # Gated info fusion from visual & ctx
+        features = torch.cat([tgt_a, tgt_b], dim=0)
+        weights_v = F.gelu(self.gate_v1(features.permute(1, 2, 0)))
+        weights_v = F.tanh(self.gate_v2(weights_v.permute(2, 0, 1))).permute(1, 2, 0)
+        weights_c = F.gelu(self.gate_c1(features.permute(1, 2, 0)))
+        weights_c = F.tanh(self.gate_c2(weights_c.permute(2, 0, 1))).permute(1, 2, 0)
+        tgt = torch.matmul(weights_v, tgt_a.permute(1, 0, 2)) + torch.matmul(weights_c, tgt_b.permute(1, 0, 2))
+        tgt = tgt.permute(1, 0, 2)
 
         tgt2 = self.linear2(self.dropout(self.activation(self.linear1(tgt))))
         tgt = tgt + self.dropout3(tgt2)
