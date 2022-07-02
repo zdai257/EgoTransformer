@@ -15,7 +15,7 @@ from pycocoevalcap.meteor.meteor import Meteor, METEOR_JAR
 from pycocoevalcap.rouge.rouge import Rouge
 from pycocoevalcap.cider.cider import Cider, CiderScorer
 from pycocoevalcap.spice.spice import Spice, SPICE_JAR
-
+from transformers import ViTFeatureExtractor
 
 
 def create_caption_and_mask(start_t, max_length):
@@ -80,7 +80,7 @@ def predict_qualitative(config, sample_path, tags, checkpoint_path=None, map_loc
             model, criterion = caption.build_model(config)
         elif config.modality == 'ego':
             # Ego Model
-            model, criterion = caption.build_model_ego(config)
+            model, criterion = caption.build_model_egovit(config)
         elif config.modality == 'video':
             # Video Model
             model, criterion = caption.build_model_bs(config)
@@ -105,14 +105,23 @@ def predict_qualitative(config, sample_path, tags, checkpoint_path=None, map_loc
     print("Start Token: {}; End Token: {}; Padding: {}".format(tokenizer._cls_token, tokenizer._sep_token,
                                                                tokenizer._pad_token))
 
+    # Load ViT backbone transform
+    #root_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = "datasets"
+    if os.path.exists(join(root_dir, "vit_classify-feature_extractor")):
+        feature_extractor = ViTFeatureExtractor.from_pretrained(join(root_dir, "vit_classify-feature_extractor"))
+    else:
+        feature_extractor = ViTFeatureExtractor.from_pretrained("google/vit-base-patch16-224")
+        feature_extractor.save_pretrained(join(root_dir, "vit_classify-feature_extractor"))
+
     @torch.no_grad()
-    def evaluate(sample_t, cap_t, cap_mask_t, tag_token_t, tag_mask_t):
+    def evaluate(sample_t, cap_t, cap_mask_t, img):
         model.eval()
         decoded_batch_beams = None
 
         for i in range(config.max_position_embeddings - 1):
             if config.modality == 'ego':
-                predictions = model(sample_t, cap_t, cap_mask_t, tag_token_t, tag_mask_t)
+                predictions = model(sample_t, cap_t, cap_mask_t, img)
             else:
                 predictions = model(sample_t, cap_t, cap_mask_t)
             predictions = predictions[:, i, :]
@@ -145,13 +154,11 @@ def predict_qualitative(config, sample_path, tags, checkpoint_path=None, map_loc
         # Load skeleton caption
         cap, cap_mask = create_caption_and_mask(start_token, config.max_position_embeddings)
 
-        # Load tag_token, tag_mask
-        if tags is not None:
-            tag_token, tag_mask = create_tag_token_and_mask(tokenizer, tags)
-        else:
-            tag_token, tag_mask = None, None
+        # Context ViT input
+        inputs = feature_extractor(image, return_tensors="pt")
+        img_tensor = inputs['pixel_values'].squeeze(1).to(device)
 
-        output, outputs = evaluate(sample, cap, cap_mask, tag_token, tag_mask)
+        output, outputs = evaluate(sample, cap, cap_mask, img_tensor)
 
         result = tokenizer.decode(output[0].tolist(), skip_special_tokens=True)
         print('\n' + result.capitalize() + '\n')
@@ -174,14 +181,11 @@ def predict_qualitative(config, sample_path, tags, checkpoint_path=None, map_loc
             # Load skeleton caption
             cap, cap_mask = create_caption_and_mask(start_token, config.max_position_embeddings)
 
-            # Load tag_token, tag_mask
-            tag = tags[idx]
-            if tag is not None:
-                tag_token, tag_mask = create_tag_token_and_mask(tokenizer, tag)
-            else:
-                tag_token, tag_mask = None, None
+            # Context ViT input
+            inputs = feature_extractor(image, return_tensors="pt")
+            img_tensor = inputs['pixel_values'].squeeze(1).to(device)
 
-            output, outputs = evaluate(sample, cap, cap_mask, tag_token, tag_mask)
+            output, outputs = evaluate(sample, cap, cap_mask, img_tensor)
 
             result = tokenizer.decode(output[0].tolist(), skip_special_tokens=True)
             print('\n' + result.capitalize() + '\n')
