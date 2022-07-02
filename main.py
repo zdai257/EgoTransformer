@@ -60,7 +60,7 @@ def main(config):
         },
         {
             "params": [p for n, p in model.named_parameters() if "ctx_encoder" in n],
-            "lr": 0.,
+            "lr": config.lr_ctx_vit,
         },
     ]
     optimizer = torch.optim.AdamW(
@@ -113,7 +113,7 @@ def main(config):
     torch.cuda.empty_cache()
 
     min_loss_val = 100
-    save_dir = 'epoch_checks'
+    save_dir = '/mnt/datasets/COCO/epoch_checks'
 
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
