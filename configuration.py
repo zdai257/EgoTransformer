@@ -48,13 +48,14 @@ class Config(object):
 class ConfigEgo(object):
     def __init__(self):
         # Learning Rates
-        self.lr_backbone = 1e-5
+        self.lr_backbone = 0e-5
         self.lr = 1e-4
+        self.lr_ctx_vit = 1e-5
 
         # Epochs
-        self.epochs = 30
+        self.epochs = 50
         self.lr_drop = 20
-        self.start_epoch = 0  # Finetune starting from 11 + 1
+        self.start_epoch = 12  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
 
         # Backbone
@@ -63,9 +64,9 @@ class ConfigEgo(object):
         self.dilation = True
 
         # Basic
-        self.device = 'cuda'
+        self.device = 'cuda:3'
         self.seed = 42
-        self.batch_size = 4
+        self.batch_size = 8
         self.num_workers = 8
         self.checkpoint = './EgoFormer.pth'
         self.clip_max_norm = 0.1
@@ -85,7 +86,7 @@ class ConfigEgo(object):
         self.pre_norm = True
 
         # Dataset
-        self.dir = '/home/zdai/repos/COCO2017'
+        self.dir = '/mnt/datasets/COCO'
         self.limit = -1
 
         # TYPE of dataset
@@ -103,7 +104,7 @@ class ConfigEgo(object):
         self.vit_lr = 1e-4
         self.vit_body_lr = 1e-5
         self.vit_weight_decay = 1e-3
-        self.pretrain_ctx_vit = "./vit_checks/ctx_vit.pth"
+        self.pretrain_ctx_vit = "./vit_checks/ctx_vit-accwhere97_accwhen82_accwhom74.pth"
 
 
 class Config2(object):
