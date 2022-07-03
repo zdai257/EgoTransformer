@@ -628,8 +628,7 @@ class EgoViTDecoderLayer(TransformerDecoderLayer):
         val = torch.cat([memory, ctx], dim=0)
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt, query_pos),
                                    key=key,
-                                   value=val, attn_mask=memory_mask,
-                                   key_padding_mask=memory_key_padding_mask)[0]
+                                   value=val)[0]
         tgt = tgt + self.dropout2(tgt2)
         tgt = self.norm2(tgt)
 
@@ -657,8 +656,7 @@ class EgoViTDecoderLayer(TransformerDecoderLayer):
         tgt2 = self.norm2(tgt)
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt2, query_pos),
                                    key=key,
-                                   value=val, attn_mask=memory_mask,
-                                   key_padding_mask=memory_key_padding_mask)[0]
+                                   value=val)[0]
         tgt = tgt + self.dropout2(tgt2)
 
         tgt2 = self.norm3(tgt)
