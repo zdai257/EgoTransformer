@@ -49,14 +49,16 @@ class ConfigEgo(object):
     def __init__(self):
         # Learning Rates
         self.lr_backbone = 0e-5
-        self.lr = 1e-4
-        self.lr_ctx_vit = 1e-5
+        self.lr = 1e-5
+        self.lr_ctx_vit = 1e-6
 
         # Epochs
-        self.epochs = 40
+        self.epochs = 80
         self.lr_drop = 20
         self.start_epoch = 12  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
+        # Warm Up: steps / (batch * epochs)
+        self.warmup_steps = 24
 
         # Backbone
         self.backbone = 'resnet101'
