@@ -53,10 +53,12 @@ class ConfigEgo(object):
         self.lr = 1e-5
 
         # Epochs
-        self.epochs = 30
+        self.epochs = 80
         self.lr_drop = 20
         self.start_epoch = 12  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
+        # Warm Up: steps / (batch * epochs)
+        self.warmup_steps = 24
 
         # Backbone
         self.backbone = 'resnet101'
@@ -64,11 +66,11 @@ class ConfigEgo(object):
         self.dilation = True
 
         # Basic
-        self.device = 'cuda'
+        self.device = 'cuda:2'
         self.seed = 42
         self.batch_size = 8
         self.num_workers = 8
-        self.checkpoint = './finetune.pth'
+        self.checkpoint = './Baseline2.pth'
         self.clip_max_norm = 0.1
 
         # Transformer
@@ -86,7 +88,7 @@ class ConfigEgo(object):
         self.pre_norm = True
 
         # Dataset
-        self.dir = '../coco'
+        self.dir = '/mnt/datasets/COCO'
         self.limit = -1
 
         # TYPE of dataset
@@ -94,11 +96,11 @@ class ConfigEgo(object):
         self.IsFinetune = True
         self.pretrain_checkpoint = "./checkpoint_cl.pth"
         # Ego dataset
-        self.egocap_data_dir = "/Users/zhuangzhuangdai/repos/EgoCapSurvey"
-        self.egocap_ana_filename = "analyzed_annatations_ref.json"
-        self.train_splits = [4, 5, 6, 7, 8, 9, 10]
-        self.val_splits = [1, 2, 3]
-        self.test_splits = []
+        self.egocap_data_dir = "/home/zdai/repos/EgoCapSurvey"
+        self.egocap_ana_filename = "EgoCap_annatations_ref.json"
+        self.train_splits = [4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21]
+        self.val_splits = [3, 10, 17]
+        self.test_splits = [1, 2]
 
 
 class Config2(object):

@@ -146,3 +146,5 @@ WordEmbeddings/
 *.pth
 *.pickle
 .DS_Store
+datasets/vit_classify-feature_extractor/
+models/vit_classify-base-patch16-224/
