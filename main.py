@@ -30,9 +30,9 @@ def main(config):
     #model, _ = caption.build_model_bs(config)
     #lst = [n for n, p in model.named_parameters() if "backbone" not in n and p.requires_grad]
     #exit()
+
     # Multi-GPU
     #model = torch.nn.DataParallel(model)
-
     model.to(device)
 
     n_parameters = sum(p.numel()
@@ -90,14 +90,14 @@ def main(config):
 
     # Redefine criterion
     print("Ignored index: ", dataset_val.tokenizer.convert_tokens_to_ids(dataset_val.tokenizer._pad_token))
-    # Define criterion in main?
+    # Define criterion in main
     #criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
 
     # Free GPU memory n allow growth
     torch.cuda.empty_cache()
 
     min_loss_val = 100
-    save_dir = 'epoch_checks'
+    save_dir = '/mnt/datasets/COCO/epoch_checks'
 
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
