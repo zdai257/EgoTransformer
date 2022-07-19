@@ -66,7 +66,7 @@ def train_an_epoch(config, model, loss_func, data_loader,
 
             outputs = model(inputs['pixel_values'])
             #print(outputs, contexts)
-            loss = criteria(loss_func, outputs, contexts, device)
+            loss = criteria(loss_func, outputs, contexts, device, config.vit_weights)
             loss_value = loss.item()
             epoch_loss += loss_value
 
@@ -180,7 +180,7 @@ def main(config):
     # Free GPU memory n allow growth
     torch.cuda.empty_cache()
 
-    save_dir = 'vit_checks'
+    save_dir = '/mnt/datasets/COCO/vit_checks'
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 

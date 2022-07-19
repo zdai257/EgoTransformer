@@ -106,6 +106,7 @@ class ConfigEgo(object):
         self.vit_lr = 1e-4
         self.vit_body_lr = 1e-5
         self.vit_weight_decay = 1e-3
+        self.vit_weights = (0.9, 0.69, 0.49)
         self.pretrain_ctx_vit = "./vit_checks/ctx_vit-accwhere97_accwhen82_accwhom74.pth"
 
 
