@@ -28,9 +28,14 @@ def criteria(loss_fun, output, context, dev, weight=(0.9, 0.69, 0.49)):
 
 
 def get_accuracy(pred, label):
+    '''
     label['where'] = (F.one_hot(label['where'], num_classes=3)).long()
     label['when'] = (F.one_hot(label['when'], num_classes=3)).long()
     label['whom'] = (F.one_hot(label['whom'], num_classes=3)).long()
+    '''
+    label['where'] = torch.argmax(label['where'])
+    label['when'] = torch.argmax(label['when'])
+    label['whom'] = torch.argmax(label['whom'])
 
     pred_where = pred['where'].detach().max(dim=1)[1].cpu().numpy()
     pred_when = pred['when'].detach().max(dim=1)[1].cpu().numpy()

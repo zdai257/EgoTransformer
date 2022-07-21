@@ -14,6 +14,7 @@ from transformers import BertTokenizer
 from sklearn.model_selection import train_test_split
 import pickle
 from .utils import nested_tensor_from_tensor_list, read_json
+from collections import Counter
 
 MAX_DIM = 299
 
@@ -314,17 +315,10 @@ class EgoCapViT(Dataset):
             self.annot = ann
         if mode == 'training':
             self.annot = ann
-        '''
-        self.where_dict = {'indoor': torch.tensor([1, 0, 0]), 'outdoor': torch.tensor([0, 1, 0]), 'na': torch.tensor([0, 0, 1])}
-        self.when_dict = {'daytime': torch.tensor([1, 0, 0]), 'night': torch.tensor([0, 1, 0]), 'na':  torch.tensor([0, 0, 1])}
-        self.whom_dict = {'human':  torch.tensor([1, 0, 0]), 'object':  torch.tensor([0, 1, 0]), 'na':  torch.tensor([0, 0, 1])}
-        '''
-        self.where_dict = {'indoor': 0, 'outdoor': 1, 'na': 2}
-        self.when_dict = {'daytime': 0, 'night': 1, 'na': 2}
-        self.whom_dict = {'human': 0, 'object': 1, 'na': 2}
 
-        self.where_dict_syn = {'indoor': "in indoor inside room", 'outdoor': "out outside outdoor outdoors", 'na': ""}
-        self.when_dict_syn = {'daytime': "day daytime sunny midday", 'night': "night nighttime midnight evening", 'na': ""}
+        self.where_lst = ["outdoor", "indoor", "na"]
+        self.when_lst = ['daytime', 'night', 'na']
+        self.whom_dict = ['human', 'object', 'na']
 
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=False)
         self.max_length = max_length + 1
@@ -349,6 +343,17 @@ class EgoCapViT(Dataset):
         caption = np.array(caption_encoded['input_ids'])
         cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
 
+        # Tags Probability
+        ctx_dict = {'where': [], 'when': [], 'whom': []}
+        for idx, (key, _) in enumerate(ctx_dict.items()):
+            tmp_lst = []
+            for item in self.where_lst:
+                ctr = Counter(tags[key])
+                prob = ctr[item] / len(tags[key])
+                tmp_lst.append(prob)
+            ctx_dict[key] = torch.tensor(tmp_lst)
+
+        '''
         # Tags: popping in Decoder
         tags_encoded = self.tokenizer.encode_plus(self.where_dict_syn[tags[0]] + ' ' + self.when_dict_syn[tags[1]],
                                                   max_length=10, pad_to_max_length=True, return_attention_mask=True,
@@ -358,11 +363,9 @@ class EgoCapViT(Dataset):
         # Disable attention to [CLS] or [SEP]
         tag_mask[0] = True
         tag_mask[-1] = True
-
-        return (image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask, tag_token, tag_mask,
-                inputs, {'where': torch.tensor(self.where_dict[tags[0]]),
-                         'when': torch.tensor(self.when_dict[tags[1]]),
-                         'whom': torch.tensor(self.whom_dict[tags[2]])})
+        '''
+        return (image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask, None, None,
+                inputs, ctx_dict)
 
 
 class CocoCaption(Dataset):
@@ -479,7 +482,10 @@ def build_dataset_egocap(config, mode='training'):
     egocap_anns, egocap_train, egocap_val, egocap_test = [], [], [], []
     for key, val in egocap_ann.items():
         for cap in val['captions']:
-            tags = (val['tag_stats']['where']['majority'], val['tag_stats']['when']['majority'], val['tag_stats']['who']['majority'])
+            # Tags: dict of {"where": [<votes>], "when": [<votes>] ...}
+            tags = val['tags']
+            #tags = (val['tag_stats']['where']['majority'], val['tag_stats']['when']['majority'], val['tag_stats']['who']['majority'])
+
             #egocap_anns.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
             if val['SplitIndex'] in config.train_splits:
                 egocap_train.append((key, str(val['SplitIndex']).zfill(2), cap, tags))
