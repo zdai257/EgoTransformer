@@ -53,7 +53,7 @@ class ConfigEgo(object):
         self.lr_ctx_vit = 1e-6
 
         # Epochs
-        self.epochs = 80
+        self.epochs = 50
         self.lr_drop = 20
         self.start_epoch = 0  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
