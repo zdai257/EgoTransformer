@@ -33,9 +33,11 @@ def get_accuracy(pred, label):
     label['when'] = (F.one_hot(label['when'], num_classes=3)).long()
     label['whom'] = (F.one_hot(label['whom'], num_classes=3)).long()
     '''
-    label['where'] = torch.argmax(label['where'])
-    label['when'] = torch.argmax(label['when'])
-    label['whom'] = torch.argmax(label['whom'])
+    '''
+    label['where'] = torch.argmax(label['where'], dim=1)
+    label['when'] = torch.argmax(label['when'], dim=1)
+    label['whom'] = torch.argmax(label['whom'], dim=1)
+    '''
 
     pred_where = pred['where'].detach().max(dim=1)[1].cpu().numpy()
     pred_when = pred['when'].detach().max(dim=1)[1].cpu().numpy()
