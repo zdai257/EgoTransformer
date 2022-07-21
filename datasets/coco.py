@@ -318,7 +318,8 @@ class EgoCapViT(Dataset):
 
         self.where_lst = ["outdoor", "indoor", "na"]
         self.when_lst = ['daytime', 'night', 'na']
-        self.whom_dict = ['human', 'object', 'na']
+        self.whom_lst = ['human', 'object', 'na']
+        self.label_lsts = [self.where_lst, self.when_lst, self.whom_lst]
 
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=False)
         self.max_length = max_length + 1
@@ -347,7 +348,7 @@ class EgoCapViT(Dataset):
         ctx_dict = {'where': [], 'when': [], 'who': []}
         for idx, (key, _) in enumerate(ctx_dict.items()):
             tmp_lst = []
-            for item in self.where_lst:
+            for item in self.label_lsts[idx]:
                 ctr = Counter(tags[key])
                 prob = ctr[item] / len(tags[key])
                 tmp_lst.append(prob)
