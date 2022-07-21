@@ -68,7 +68,7 @@ class ConfigEgo(object):
         # Basic
         self.device = 'cuda:2'
         self.seed = 42
-        self.batch_size = 8
+        self.batch_size = 16
         self.num_workers = 8
         self.checkpoint = './EgoFormer2.pth'
         self.clip_max_norm = 0.1

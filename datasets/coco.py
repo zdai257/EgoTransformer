@@ -316,9 +316,9 @@ class EgoCapViT(Dataset):
         if mode == 'training':
             self.annot = ann
 
-        self.where_lst = ["outdoor", "indoor", "na"]
+        self.where_lst = ["indoor", "outdoor", "na"]
         self.when_lst = ['daytime', 'night', 'na']
-        self.whom_lst = ['human', 'object', 'na']
+        self.whom_lst = ['object', 'human', 'na']
         self.label_lsts = [self.where_lst, self.when_lst, self.whom_lst]
 
         self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower=True, local_files_only=False)

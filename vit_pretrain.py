@@ -21,7 +21,7 @@ import torch.nn.functional as F
 def criteria(loss_fun, output, context, dev, weight=(0.9, 0.69, 0.49)):
     losses = 0
     for i, key in enumerate(output):
-        print(output[key], context[key])
+        #print(output[key], context[key])
         #print(output[key].shape, context[key].shape)
         losses += weight[i] / sum(weight) * loss_fun(output[key], context[key].to(dev))
     return losses
@@ -163,8 +163,8 @@ def main(config):
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 20)
 
     # Weighted Loss Func
-    class_weights = torch.tensor([1/3, 1/3, 1/3]).to(device)
-    criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
+    class_weights = torch.tensor([0.25, 0.4, 0.35]).to(device)
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights, reduction='mean')
 
     # Dataset
     if config.modality == 'ego':
@@ -205,11 +205,11 @@ def main(config):
         print(f"Validation Loss: {validation_loss}")
 
         # magic numbers?
-        avg_acc = (1/3 * acc_where + 1/3 * acc_when + 1/3 * acc_whom)
+        avg_acc = (0.24 * acc_where + 0.38 * acc_when + 0.38 * acc_whom)
         if best_acc < avg_acc:
             best_acc = avg_acc
             print('Saving model ...')
-            model_name = 'prob_ctx_vit-accwhere{}_accwhen{}_accwhom{}.pth'.format(
+            model_name = 'prob_default16-accwhere{}_accwhen{}_accwhom{}.pth'.format(
                 round(acc_where * 100),
                 round(acc_when * 100),
                 round(acc_whom * 100)
