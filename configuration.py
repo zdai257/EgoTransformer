@@ -55,7 +55,7 @@ class ConfigEgo(object):
         # Epochs
         self.epochs = 80
         self.lr_drop = 20
-        self.start_epoch = 12  # Finetune starting from 11 + 1
+        self.start_epoch = 0  # Finetune starting from 11 + 1
         self.weight_decay = 1e-4
         # Warm Up: steps / (batch * epochs)
         self.warmup_steps = 24
@@ -66,7 +66,7 @@ class ConfigEgo(object):
         self.dilation = True
 
         # Basic
-        self.device = 'cuda:3'
+        self.device = 'cuda:2'
         self.seed = 42
         self.batch_size = 8
         self.num_workers = 8

@@ -60,7 +60,7 @@ def train_an_epoch(config, model, loss_func, data_loader,
 
     with tqdm.tqdm(total=total) as pbar:
         for i, tuples in enumerate(data_loader):
-            inputs, contexts = tuples[6], tuples[7]
+            inputs, contexts = tuples[4], tuples[5]
             '''
             contexts['where'] = (F.one_hot(contexts['where'], num_classes=3)).long()
             contexts['when'] = (F.one_hot(contexts['when'], num_classes=3)).long()
@@ -102,7 +102,7 @@ def evaluate(config, model, loss_func, data_loader, device):
     acc_whom = 0.0
     with tqdm.tqdm(total=total) as pbar:
         for i, tuples in enumerate(data_loader):
-            inputs, contexts = tuples[6], tuples[7]
+            inputs, contexts = tuples[4], tuples[5]
 
             inputs['pixel_values'] = inputs['pixel_values'].squeeze(1).to(device)
 
@@ -207,7 +207,7 @@ def main(config):
         if best_acc < avg_acc:
             best_acc = avg_acc
             print('Saving model ...')
-            model_name = 'ctx_vit-accwhere{}_accwhen{}_accwhom{}.pth'.format(
+            model_name = 'prob_ctx_vit-accwhere{}_accwhen{}_accwhom{}.pth'.format(
                 round(acc_where * 100),
                 round(acc_when * 100),
                 round(acc_whom * 100)

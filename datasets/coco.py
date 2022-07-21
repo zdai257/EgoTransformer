@@ -364,7 +364,7 @@ class EgoCapViT(Dataset):
         tag_mask[0] = True
         tag_mask[-1] = True
         '''
-        return (image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask, None, None,
+        return (image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask,
                 inputs, {"where": ctx_dict["where"], "when": ctx_dict["when"], "whom": ctx_dict["who"]})
 
 
