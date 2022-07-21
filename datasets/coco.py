@@ -344,7 +344,7 @@ class EgoCapViT(Dataset):
         cap_mask = (1 - np.array(caption_encoded['attention_mask'])).astype(bool)
 
         # Tags Probability
-        ctx_dict = {'where': [], 'when': [], 'whom': []}
+        ctx_dict = {'where': [], 'when': [], 'who': []}
         for idx, (key, _) in enumerate(ctx_dict.items()):
             tmp_lst = []
             for item in self.where_lst:
@@ -365,7 +365,7 @@ class EgoCapViT(Dataset):
         tag_mask[-1] = True
         '''
         return (image.tensors.squeeze(0), image.mask.squeeze(0), caption, cap_mask, None, None,
-                inputs, ctx_dict)
+                inputs, {"where": ctx_dict["where"], "when": ctx_dict["when"], "whom": ctx_dict["who"]})
 
 
 class CocoCaption(Dataset):
