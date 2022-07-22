@@ -209,7 +209,7 @@ def main(config):
         if best_acc < avg_acc:
             best_acc = avg_acc
             print('Saving model ...')
-            model_name = 'prob_default16-accwhere{}_accwhen{}_accwhom{}.pth'.format(
+            model_name = 'prob_equalloss32-accwhere{}_accwhen{}_accwhom{}.pth'.format(
                 round(acc_where * 100),
                 round(acc_when * 100),
                 round(acc_whom * 100)
