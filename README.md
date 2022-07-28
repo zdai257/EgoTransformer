@@ -1,75 +1,59 @@
-EgoTransformer: based on CATR
+EgoCap and EgoFormer: First-Person Image Captioning
 ========
 
-A testing split of Deepdiary dataset with ego-captions can be found [here](https://drive.google.com/drive/folders/1fdx8nunJ8HJ2zyjZsX6x3XQECEGBAswi?usp=sharing).
+EgoCap is a first sizable dataset that supports end-to-end 1st-person narrative caption learning. It contain 2.1K egocentric images, over 10K captions, and 6.3K contextual
+label.
 
-PyTorch training code and pretrained models for **CATR** (**CA**ption **TR**ansformer).
+The EgoCap dataset can be downloaded from [here](https://drive.google.com/drive/folders/10u8kBlrqi9sFiXZrouP6FChypen4dcFz?usp=sharing).
 
-The models are also available via torch hub,
-to load model with pretrained weights simply do:
-```python
-model = torch.hub.load('saahiluppal/catr', 'v3', pretrained=True)  # you can choose between v1, v2 and v3
+EgoFormer is a two-stream transformer based network which accomplishes visual-context attention for ego-caption generation. Please cite this work as belew;
+
 ```
-### Samples:
+@inproceedings{egocap2022,
+author = {Dai, Zhuangzhuang and Tran, Vu and Markham, Andrew and Trigoni, Niki and Rahman, M Arif and Wijayasingha, L. N. S. and Stankovic, John and Li, Chen},
+year = {2022},
+month = {},
+pages = {},
+booktitle={Proceedings of the British Machine Vision Conference (BMVC)},
+publisher={BMVA Press},
+title = {EgoCap and EgoFormer: First-Person Image Captioning with Context Fusion}
+}
+```
+
+This repository implements the training and evaluation of EgoFormer. It is modified based on repository [CATR](https://github.com/saahiluppal/catr).
+
+## Prerequisites ##
+
+* Python 3.7
+* Pytorch 1.7
+* torchvision 0.8.2
+* transformers 4.12.5
+* pycocoevalcap
+* sklearn
+
+Microsoft [COCO-2017](http://cocodataset.org/#download) dataset and EgoCap dataset are required. After acquiring these datasets locally, specify source directory links, training settings, and hyperparameters in *configuration.py*.
+
+## Usage ##
+
+Use **Master** branch for vanilla transformer training, **coca_ctx_vit** for EgoFormer training, and the rest branches for comparative studies.
+
+```python
+python3 vit_pretrain.py  # Pre-train ViT context encoder, if needed
+python3 main.py
+```
+
+## Evaluation ##
+
+It is recommended to run the evaluation pipeline through the [notebook](zdData.ipynb). Otherwise, use *predict.py* to generate caption of an arbitrary image, or use APIs in *Eval.py* to conduct quantitative analysis.
+
+Some qualitative analysis results are shown below
 
 <p align="center">
-  <img src=".github/cake.png" />
-  <img src=".github/girl.png" />
-  <img src=".github/office.png" />
-  <img src=".github/horse.png" />
-  <img src=".github/airplane.png" />
+  <img src="Qualitative_samples/fjDvKHkmxs0_119_126.avi00001.jpg" />
+  <img src="Qualitative_samples/0ee70fb4-ac6d-4da8-80e6-f5a94834eb10_small.jpg" />
+  <img src="Qualitative_samples/0f4e630b-e834-4ff4-9418-ccfdbdc4ee37_small.jpg" />
 </p>
 
-All these images has been annotated by CATR.
+## Acknowledge ##
 
-Test with your own bunch of images:
-````bash
-$ python predict.py --path /path/to/image --v v2  // You can choose between v1, v2, v3 [default is v3]
-````
-Or Try it out in colab [notebook](catr_demo.ipynb)
-
-# Usage 
-There are no extra compiled components in CATR and package dependencies are minimal,
-so the code is very simple to use. We provide instructions how to install dependencies.
-First, clone the repository locally:
-```
-$ git clone https://github.com/saahiluppal/catr.git
-```
-Then, install PyTorch 1.5+ and torchvision 0.6+ along with remaining dependencies:
-```
-$ pip install -r requirements.txt
-```
-That's it, should be good to train and test caption models.
-
-## Data preparation
-
-Download and extract COCO 2017 train and val images with annotations from
-[http://cocodataset.org](http://cocodataset.org/#download).
-We expect the directory structure to be the following:
-```
-path/to/coco/
-  annotations/  # annotation json files
-  train2017/    # train images
-  val2017/      # val images
-```
-
-## Training
-Tweak the hyperparameters from <a href='https://github.com/saahiluppal/catr/blob/master/configuration.py'>configuration</a> file.
-
-To train baseline CATR on a single GPU for 30 epochs run:
-```
-$ python main.py
-```
-We train CATR with AdamW setting learning rate in the transformer to 1e-4 and 1e-5 in the backbone.
-Horizontal flips, scales an crops are used for augmentation.
-Images are rescaled to have max size 299.
-The transformer is trained with dropout of 0.1, and the whole model is trained with grad clip of 0.1.
-
-## Testing
-To test CATR with your own images.
-```
-$ python predict.py --path /path/to/image --v v2  // You can choose between v1, v2, v3 [default is v3]
-```
-
-# License
-CATR is released under the Apache 2.0 license. Please see the [LICENSE](LICENSE) file for more information.
+Cyber Physical Systems, University of Oxford
